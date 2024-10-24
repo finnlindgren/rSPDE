@@ -1191,7 +1191,7 @@ summary.rspde_lme <- function(object, all_times = FALSE, ...) {
   if (model_type) {
     if (object$latent_model$stationary) {
       call_name <- "Latent model - Whittle-Matern"
-    } else if(x$spacetime) {
+    } else if(object$spacetime) {
         call_name <- "Latent model - Spatio-temporal"
     } else {
       call_name <- "Latent model - Generalized Whittle-Matern"

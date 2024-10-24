@@ -31,6 +31,10 @@ navbar:
         href: articles/rspde_base.html
       - text: Intrinsic models
         href: articles/intrinsic.html
+      - text: Spatio-temporal models
+        href: articles/spacetime.html
+      - text: Rational approximations without finite element approximations
+        href: articles/rspde_nofem.html
       - text: Building the rSPDE package from source on Mac and Linux
         href: articles/build_source.html
     twitter:
