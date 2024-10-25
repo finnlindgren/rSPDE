@@ -261,6 +261,74 @@ Let us see a summary of the fitted model:
 summary(res)
 ```
 
+## An example on a metric graph
 
+Finally, let us show an example on a metric graph. We use the following simple graph 
+as an illustration.
+
+```{r}
+library(sp)
+library(MetricGraph)
+line1 <- Line(rbind(c(1,0),c(0,0)))
+line2 <- Line(rbind(c(0,0),c(0,1)))
+line3 <- Line(rbind(c(0,0),c(0,-1)))
+line4 <- Line(rbind(c(0,1),c(1,0)))
+lines = sp::SpatialLines(list(Lines(list(line1),ID="1"),
+                              Lines(list(line2),ID="2"),
+                              Lines(list(line3),ID="3"),
+                              Lines(list(line4),ID="4")))
+
+graph <- metric_graph$new(edges = lines)
+graph$plot(direction = TRUE)
+```
+We now create a finite element mesh on the graph and comptue the required 
+finite element matrices.
+```{r}
+h = 0.01
+graph$build_mesh(h = h)
+graph$compute_fem()
+```
+We are now ready to construct the model as before.
+
+```{r}
+t <- seq(from = 0, to = 10, length.out = 31)
+kappa <- 5
+sigma <- 10
+gamma <- 0.1
+rho <- 1
+alpha <- 1
+beta <- 1
+
+op <- spacetime.operators(graph = graph, time = t,
+                              kappa = kappa, sigma = sigma, alpha = alpha,
+                              beta = beta, rho = rho, gamma = gamma)
+op$plot_covariances(t.ind = 15, s.ind = 50, t.shift = c(-1,0,1))
+```
+
+Let us now simulate some data and estimate the parameters:
+```{r}
+x <- simulate(op, nsim = 1) 
+
+n.obs <- 500
+
+PtE <- cbind(sample(1:graph$nE,size=n.obs, replace = TRUE), runif(n.obs))
+t.obs <- max(t)*runif(n.obs)
+A <- op$make_A(PtE, t.obs)
+sigma.e <- 0.01
+Y <- as.vector(A%*%x + sigma.e*rnorm(n.obs))
+```
+
+We can now estimate the parameters as before. The only difference here is that
+we set `use_data_from_graph = FALSE` as we are supplying the data manually.
+```{r}
+df <- data.frame(y = as.matrix(Y), edge = PtE[,1], pos = PtE[,2], t = t.obs)
+res <- rspde_lme(y ~ 1, loc = c("edge", "pos"), loc_time = "t", data = df,
+                 model = op, use_data_from_graph = FALSE, parallel = TRUE)
+
+```
+
+```{r}
+summary(res)
+```
 ## References
 

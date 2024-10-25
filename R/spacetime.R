@@ -269,7 +269,7 @@ spacetime.operators <- function(mesh_space = NULL,
     if(has_graph) { 
         plot_covariances <- function(t.ind, s.ind, t.shift=0, show.temporal = TRUE) {
             
-            check_packages(c("plotly"), "plot_function()")
+            check_packages(c("ggplot2", "gridExtra"), "plot_function()")
             N <- dim(Q)[1]
         
             n <- N/length(mesh_time$loc)
@@ -282,8 +282,6 @@ spacetime.operators <- function(mesh_space = NULL,
             if(max(t.ind)>length(mesh_time$loc))
                 stop("too large time index")
             
-            cols <- c("green", "cyan","blue","red")[(4-length(t.ind)+1):4]
-            
             time.index <- n*(0:(T-1)) + s.ind
             ct <- matrix(0,nrow = length(t.ind),ncol = T)
             
@@ -293,37 +291,36 @@ spacetime.operators <- function(mesh_space = NULL,
             tmp <- solve(Q,v)
         
             ct <- tmp[time.index]
+            plots <- list()
             for(j in 1:length(t.shift)) {
                 ind <- ((t.ind-t.shift[j]-1)*n+1):((t.ind-t.shift[j])*n)
-                c <- tmp[ind]
-                if(length(t.shift)>1) {
-                    col <- cols[j]
-                } else {
-                    col <- cols[i]
-                }
-                if(i == 1) {
-                    p <- graph$plot_function(as.vector(c), 
-                                             plotly = TRUE, 
-                                             support_width = 0, 
-                                             line_color = col)
-                } else {
-                    p <- graph$plot_function(as.vector(c), 
-                                             plotly = TRUE, 
-                                             p = p, 
-                                             support_width = 0, 
-                                             line_color = col)
-                }
+                plots[[j]] <- graph$plot_function(as.vector(tmp[ind]), vertex_size = 0)
             }
             
-            df <- data.frame(t=mesh_time$loc, y=ct)
-                pt <- plotly::plot_ly(df, x = ~t, y = ~y, type = 'scatter', mode = 'lines')
-                fig <- plotly::layout(plotly::subplot(p,pt), 
-                                      title = "Marginal covariances",
-                                      scene = list(domain=list(x=c(0,0.5),
-                                                               y=c(0,1))),
-                                      scene2 = list(domain=list(x=c(0.5,1),
-                                                                y=c(0,1))))
-            fig$x$layout <- fig$x$layout[grep('NA', names(fig$x$layout), invert = TRUE)]
+            pt <- ggplot2::ggplot(data.frame(t=mesh_time$loc, y=ct)) + 
+                ggplot2::aes(x=t, y=y) + ggplot2::geom_line()
+            
+            if(length(t.shift) == 1) {
+                fig <- gridExtra::grid.arrange(plots[[1]], pt, ncol = 1)
+            } else if(length(t.shift) == 2) {
+                fig <- gridExtra::grid.arrange(gridExtra::arrangeGrob(plots[[1]], 
+                                                                      plots[[2]],
+                                                                      ncol = 2), 
+                                               pt, ncol = 1)
+            } else if(length(t.shift == 3)) {
+                fig <- gridExtra::grid.arrange(gridExtra::arrangeGrob(plots[[1]], 
+                                                                      plots[[2]], 
+                                                                      plots[[3]],
+                                                                      ncol = 3), 
+                                               pt, ncol = 1)
+            } else {
+                fig <- gridExtra::grid.arrange(gridExtra::arrangeGrob(plots[[1]], 
+                                                                      plots[[2]], 
+                                                                      plots[[3]], 
+                                                                      plots[[4]],
+                                                                      ncol = 4), 
+                                               pt, ncol = 1)
+            }
             print(fig)
             return(fig)
         }
