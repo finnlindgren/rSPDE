@@ -38,7 +38,7 @@
 #' @importFrom stats dnorm pnorm dbeta nobs deviance logLik
 #' @importFrom methods as
 #' @importFrom stats simulate lm logLik na.omit optim sd terms rt spline
-#' @importFrom fmesher fm_mesh_2d fm_basis fm_block fm_row_kron fm_mesh_1d fm_fem
+#' @importFrom fmesher fm_mesh_2d fm_basis fm_block fm_row_kron fm_mesh_1d fm_fem fm_evaluate fm_evaluator
 #' @importFrom lifecycle deprecated
 #' @importFrom broom augment glance
 #' @export augment glance
