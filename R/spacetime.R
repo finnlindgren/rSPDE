@@ -267,7 +267,7 @@ spacetime.operators <- function(mesh_space = NULL,
     }
     
     if(has_graph) { 
-        plot_covariances <- function(t.ind, s.ind, t.shift=0, show.temporal = TRUE) {
+        plot_covariances <- function(t.ind, s.ind, t.shift=0) {
             
             check_packages(c("ggplot2", "gridExtra"), "plot_function()")
             N <- dim(Q)[1]
@@ -291,6 +291,7 @@ spacetime.operators <- function(mesh_space = NULL,
             tmp <- solve(Q,v)
         
             ct <- tmp[time.index]
+            
             plots <- list()
             for(j in 1:length(t.shift)) {
                 ind <- ((t.ind-t.shift[j]-1)*n+1):((t.ind-t.shift[j])*n)
@@ -307,7 +308,7 @@ spacetime.operators <- function(mesh_space = NULL,
                                                                       plots[[2]],
                                                                       ncol = 2), 
                                                pt, ncol = 1)
-            } else if(length(t.shift == 3)) {
+            } else if(length(t.shift) == 3) {
                 fig <- gridExtra::grid.arrange(gridExtra::arrangeGrob(plots[[1]], 
                                                                       plots[[2]], 
                                                                       plots[[3]],
@@ -341,8 +342,6 @@ spacetime.operators <- function(mesh_space = NULL,
             if(max(t.ind)>length(mesh_time$loc))
                 stop("too large time index")
             
-            
-            
             time.index <- n*(0:(T-1)) + s.ind
             
             v <- rep(0,N)
@@ -370,7 +369,7 @@ spacetime.operators <- function(mesh_space = NULL,
                     data.df <- rbind(data.df, fields.df[[j]])
                 }
             }
-            p1 <- ggplot2::ggplot(data.df) + aes(x = x1, y = x2, fill = u) + 
+            p1 <- ggplot2::ggplot(data.df) + ggplot2::aes(x = x1, y = x2, fill = u) + 
                 ggplot2::facet_wrap(~type) + ggplot2::geom_raster() + 
                 viridis::scale_fill_viridis()
             
@@ -393,7 +392,7 @@ spacetime.operators <- function(mesh_space = NULL,
             data.df <- data.frame(space = rep(mesh_space$loc, length(mesh_time$loc)), 
                                   time = rep(mesh_time$loc, each = length(mesh_space$loc)),
                                   cov = vals)
-            p <- ggplot2::ggplot(data.df) + aes(x = space, y = time, fill = cov) + 
+            p <- ggplot2::ggplot(data.df) + ggplot2::aes(x = space, y = time, fill = cov) + 
                 ggplot2::geom_raster() + viridis::scale_fill_viridis()
             print(p)
             return(p)
@@ -1016,7 +1015,7 @@ rSPDE.Ast <- function(mesh_space = NULL,
         if(min(dim(space_loc))>1) {
             stop("For 2d domains, please provide mesh_space instead of space_loc")
         }
-        mesh_space <- fm_mesh_1d(s)
+        mesh_space <- fm_mesh_1d(space_loc)
         As <- fm_basis(mesh_space, obs.s)    
     }
     
