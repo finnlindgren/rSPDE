@@ -1375,7 +1375,7 @@ print.summary_rspde_lme <- function(x, ...) {
       message("\nNo fixed effects. \n")
     }
     #
-    if (!x$estimate_nu) {
+    if (!x$estimate_nu && !x$spacetime) {
       cat("\nSmoothness parameter: \n")
       cat("\t alpha =", x$alpha, "\n")
       cat("\t nu =", x$nu, "(Matern parameterization)\n")

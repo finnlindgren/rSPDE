@@ -1955,3 +1955,20 @@ create_train_test_indices <- function(data, cv_type = c("k-fold", "loo", "lpo"),
   }
   return(list(train = train_list, test = test_list))
 }
+
+# Check for required packages
+#' @noRd
+check_packages <- function(packages, func) {
+    are_installed <-vapply(packages,
+                           function(x) {
+                               requireNamespace(x, quietly = TRUE)
+                               },
+                           TRUE
+        )
+    if (any(!are_installed)) {
+        stop(paste0("Needed package(s) ",
+                    paste0("'", packages[!are_installed], "'", collapse = ", "),
+                    " not installed, but are needed by ", func)
+             )
+    }
+}
