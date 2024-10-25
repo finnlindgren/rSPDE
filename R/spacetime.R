@@ -236,13 +236,13 @@ spacetime.operators <- function(mesh_space = NULL,
     Q <- make.L(beta,kappa,Gtlist) + 2*gamma*make.L(beta+alpha,kappa, B0list)
     
     if(d==2) {
+        Q <- Q + gamma^2*make.L(beta+2*alpha,kappa,Ctlist)
         if(alpha == 1){
-            Q <- Q + gamma^2**make.L(beta+2,kappa,Ctlist)
             tmp <- rho[1]^2*make.L(beta,kappa,M2list[[1]]) + rho[2]^2*make.L(beta,kappa,M2list[[2]]) + 2*rho[1]*rho[2]*make.L(beta,kappa,M2list[[3]])
             Q <- Q + 0.5*gamma^2*(tmp + t(tmp))
             M2 <- rho[1]*make.L(beta,kappa,M2list[[4]]) + rho[2]*make.L(beta,kappa,M2list[[5]])
             Q <- Q - gamma*(M2 + t(M2))
-        }
+        } 
     } else {
         for(k in 0:alpha) {
             Q <- Q + gamma^2*choose(alpha,k)*rho^(2*k)*make.L(beta+2*(alpha-k),
@@ -253,7 +253,7 @@ spacetime.operators <- function(mesh_space = NULL,
         }    
     }
     
-
+    Q <- Q/sigma^2
     if (!is.null(graph)) {
         make_A <- function(loc, time) {
             return(rSPDE.Ast(graph = graph, mesh_time = mesh_time, 
@@ -269,13 +269,14 @@ spacetime.operators <- function(mesh_space = NULL,
     if(has_graph) { 
         plot_covariances <- function(t.ind, s.ind, t.shift=0, show.temporal = TRUE) {
             
+            check_packages(c("plotly"), "plot_function()")
             N <- dim(Q)[1]
         
             n <- N/length(mesh_time$loc)
             
             T <- N/n
-            if(length(t.ind)>4)
-                stop("max 4 curves allowed")
+            if(length(t.shift)>4)
+                stop("max 4 shifts allowed")
             if(s.ind > n)
                 stop("too large space index")
             if(max(t.ind)>length(mesh_time$loc))
@@ -285,62 +286,124 @@ spacetime.operators <- function(mesh_space = NULL,
             
             time.index <- n*(0:(T-1)) + s.ind
             ct <- matrix(0,nrow = length(t.ind),ncol = T)
-            for(i in 1:length(t.ind)) {
-                v <- rep(0,N)
-                v[(t.ind[i]-1)*n+s.ind] <- 1
+            
+            v <- rep(0,N)
+            v[(t.ind-1)*n+s.ind] <- 1
                 
-                tmp <- solve(Q,v)
+            tmp <- solve(Q,v)
         
-                ct[i,] <- tmp[time.index]
-                for(j in 1:length(t.shift)) {
-                    ind <- ((t.ind[i]-t.shift[j]-1)*n+1):((t.ind[i]-t.shift[j])*n)
-                    c <- tmp[ind]
-                    if(length(t.shift)>1) {
-                        col <- cols[j]
-                    } else {
-                        col <- cols[i]
-                    }
-                    if(i == 1) {
-                        p <- graph$plot_function(as.vector(c), 
-                                                 plotly = TRUE, 
-                                                 support_width = 0, 
-                                                 line_color = col)
-                    } else {
-                        p <- graph$plot_function(as.vector(c), 
-                                                 plotly = TRUE, 
-                                                 p = p, 
-                                                 support_width = 0, 
-                                                 line_color = col)
-                    }
-                    
+            ct <- tmp[time.index]
+            for(j in 1:length(t.shift)) {
+                ind <- ((t.ind-t.shift[j]-1)*n+1):((t.ind-t.shift[j])*n)
+                c <- tmp[ind]
+                if(length(t.shift)>1) {
+                    col <- cols[j]
+                } else {
+                    col <- cols[i]
+                }
+                if(i == 1) {
+                    p <- graph$plot_function(as.vector(c), 
+                                             plotly = TRUE, 
+                                             support_width = 0, 
+                                             line_color = col)
+                } else {
+                    p <- graph$plot_function(as.vector(c), 
+                                             plotly = TRUE, 
+                                             p = p, 
+                                             support_width = 0, 
+                                             line_color = col)
                 }
             }
-            if(show.temporal){
-                df <- data.frame(t=rep(mesh_time$loc,length(t.ind)),
-                                 y=c(t(ct)), 
-                                 i=rep(1:length(t.ind), each=length(mesh_time$loc)))
-                pt <- plotly::plot_ly(df, x = ~t, y = ~y, split = ~i, 
-                                      type = 'scatter', mode = 'lines')
+            
+            df <- data.frame(t=mesh_time$loc, y=ct)
+                pt <- plotly::plot_ly(df, x = ~t, y = ~y, type = 'scatter', mode = 'lines')
                 fig <- plotly::layout(plotly::subplot(p,pt), 
                                       title = "Marginal covariances",
                                       scene = list(domain=list(x=c(0,0.5),
                                                                y=c(0,1))),
                                       scene2 = list(domain=list(x=c(0.5,1),
                                                                 y=c(0,1))))
-                fig$x$layout <- fig$x$layout[grep('NA', names(fig$x$layout), 
-                                                  invert = TRUE)]
-            } else {
-                fig <- p
-            }
-            
+            fig$x$layout <- fig$x$layout[grep('NA', names(fig$x$layout), invert = TRUE)]
             print(fig)
             return(fig)
         }
+    } else if(d==2){
+        plot_covariances <- function(t.ind, s.ind, t.shift=0) {
+            check_packages(c("ggplot2", "viridis","gridExtra"), "plot_function()")
+            
+            N <- dim(Q)[1]
+            
+            n <- N/length(mesh_time$loc)
+            
+            T <- N/n
+            
+            if(length(t.shift)>4)
+                stop("max 4 shifts allowed")
+            if(s.ind > n)
+                stop("too large space index")
+            if(max(t.ind)>length(mesh_time$loc))
+                stop("too large time index")
+            
+            
+            
+            time.index <- n*(0:(T-1)) + s.ind
+            
+            v <- rep(0,N)
+            v[(t.ind-1)*n+s.ind] <- 1
+                
+            tmp <- solve(Q,v)
+                
+            ct <- tmp[time.index]
+            proj <- fm_evaluator(mesh_space, dims = c(100, 100))
+            fields.df <- list()
+            
+            for(j in 1:length(t.shift)) {
+                ind <- ((t.ind-t.shift[j]-1)*n+1):((t.ind-t.shift[j])*n)
+                c <- tmp[ind]
+                field <- fm_evaluate(proj, field = as.vector(c))    
+                fields.df[[j]] <- data.frame(x1 = proj$lattice$loc[,1], 
+                                             x2 = proj$lattice$loc[,2], 
+                                             u = as.vector(field), 
+                                             type = sprintf("t = %f", 
+                                                            mesh_time$loc[t.ind + t.shift[j]]))
+            }
+            data.df <- fields.df[[1]]
+            if(length(t.shift)>1) {
+                for(j in 2:length(t.shift)) {
+                    data.df <- rbind(data.df, fields.df[[j]])
+                }
+            }
+            p1 <- ggplot2::ggplot(data.df) + aes(x = x1, y = x2, fill = u) + 
+                ggplot2::facet_wrap(~type) + ggplot2::geom_raster() + 
+                viridis::scale_fill_viridis()
+            
+            p2 <- ggplot2::ggplot(data.frame(t=mesh_time$loc, y=ct)) + 
+                ggplot2::aes(x=t, y=y) + ggplot2::geom_line()
+            
+            p <- gridExtra::grid.arrange(p1,p2, ncol=1)
+            print(p)
+            return(p)
+        }
     } else {
-        plot_covariances <- NULL
+        plot_covariances <- function(t.ind, s.ind) { 
+            check_packages(c("ggplot2", "viridis"), "plot_function()")
+            N <- dim(Q)[1]
+            
+            v <- rep(0,N)
+            v[(t.ind-1)*length(mesh_space$loc)+s.ind] <- 1
+            
+            vals <- solve(Q,v)
+            data.df <- data.frame(space = rep(mesh_space$loc, length(mesh_time$loc)), 
+                                  time = rep(mesh_time$loc, each = length(mesh_space$loc)),
+                                  cov = vals)
+            p <- ggplot2::ggplot(data.df) + aes(x = space, y = time, fill = cov) + 
+                ggplot2::geom_raster() + viridis::scale_fill_viridis()
+            print(p)
+            return(p)
+        }
     }
     out <- list()
-    out$Q <- Q/sigma^2
+    out$Q <- Q
     out$Gtlist <- Gtlist
     out$Ctlist <- Ctlist
     out$B0list <- B0list
@@ -430,8 +493,8 @@ update.spacetimeobj <- function(object,
                                                            object$B0list)
     
     if(object$d==2) {
+        Q <- Q + gamma^2*make.L(beta+2*alpha,kappa,object$Ctlist)
         if(alpha == 1){
-            Q <- Q + gamma^2**make.L(beta+2,kappa,object$Ctlist)
             tmp <- rho[1]^2*make.L(beta,kappa,object$M2list[[1]]) + rho[2]^2*make.L(beta,kappa,object$M2list[[2]]) + 2*rho[1]*rho[2]*make.L(beta,kappa,object$M2list[[3]])
             Q <- Q + gamma^2*(tmp + t(tmp))
             
@@ -489,12 +552,13 @@ simulate.spacetimeobj <- function(object, nsim = 1,
     if (!is.null(seed)) {
         set.seed(seed)
     }
+    if(!is.null(user_kappa) || !is.null(user_sigma) || !is.null(user_gamma) || !is.null(user_rho)) {
+        object <- update.spacetimeobj(object, user_kappa = user_kappa,
+                                      user_sigma = user_sigma,
+                                      user_gamma = user_gamma,
+                                      user_rho = user_rho)    
+    }
     
-    object <- update.spacetimeobj(object, user_kappa = user_kappa,
-                                  user_sigma = user_sigma,
-                                  user_gamma = user_gamma,
-                                  user_rho = user_rho)
-        
     sizeQ <- dim(object$Q)[1]
     Z <- rnorm(sizeQ * nsim)
     dim(Z) <- c(sizeQ, nsim)
@@ -742,12 +806,15 @@ spacetime.loglike <- function(object, Y, A, sigma.e, mu = 0,
     
     ## get relevant parameters
     
-    object <- update.spacetimeobj(
-        object = object,
-        user_kappa = user_kappa,
-        user_sigma = user_sigma,
-        user_gamma = user_gamma,
-        user_rho = user_rho)
+    if(!is.null(user_kappa) || !is.null(user_sigma) || !is.null(user_gamma) || !is.null(user_rho)) {
+        object <- update.spacetimeobj(
+            object = object,
+            user_kappa = user_kappa,
+            user_sigma = user_sigma,
+            user_gamma = user_gamma,
+            user_rho = user_rho)    
+    }
+    
     
     
     if (length(sigma.e) == 1) {
