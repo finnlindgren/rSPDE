@@ -539,7 +539,7 @@ rspde_lme <- function(formula,
               beta_cov <- NULL
           }
           
-          loglik <- rSPDE:::aux_lme_spacetime.loglike(
+          loglik <- aux_lme_spacetime.loglike(
               object = model_tmp, y = y_resp, X_cov = X_cov, repl = repl,
               A_list = A_list, sigma_e = sigma_e, beta_cov = beta_cov
           )
