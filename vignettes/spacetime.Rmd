@@ -140,7 +140,7 @@ To estimate the model parameters based on this data, we can use the `rspde_lme` 
 
 ```{r}
 df <- data.frame(y = as.matrix(Y), x = obs.loc$x, t = obs.loc$t)
-res <- rspde_lme(y ~ 1, loc = "x", loc_time = "t", data = df, model = op)
+res <- rspde_lme(y ~ 1, loc = "x", loc_time = "t", data = df, model = op, parallel = TRUE)
 
 ```
 

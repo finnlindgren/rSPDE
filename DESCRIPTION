@@ -18,7 +18,7 @@ RoxygenNote: 7.3.2
 Suggests: knitr, rmarkdown, INLA (>= 22.12.14), testthat,
         ggplot2, lattice, splancs, optimParallel, RSpectra, numDeriv,
         inlabru (>= 2.7.0), sn, viridis, doParallel, foreach, tidyr,
-        dplyr, ngme2, gridExtra
+        dplyr, ngme2, gridExtra, MetricGraph
 Additional_repositories: https://inla.r-inla-download.org/R/testing, https://davidbolin.github.io/ngme2/
 BugReports: https://github.com/davidbolin/rSPDE/issues
 VignetteBuilder: knitr
