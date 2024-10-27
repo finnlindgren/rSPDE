@@ -202,79 +202,7 @@ bru_rerun_with_data <- function(result, idx_data, true_CV, fit_verbose) {
   original_timings <- result[["bru_timings"]]
 
   lhoods_tmp <- info[["lhoods"]]
-  lhoods_tmp[[1]]$response_data$BRU_response <- lhoods_tmp[[1]]$response_data$BRU_response[idx_data]
-
-  # lhoods_tmp[[1]]$data <- lhoods_tmp[[1]]$data[idx_data,]
-
-  lhoods_tmp[[1]]$data <- select_indexes(lhoods_tmp[[1]]$data, idx_data)
-
-  if (length(lhoods_tmp[[1]]$E) > 1) {
-    lhoods_tmp[[1]]$E <- lhoods_tmp[[1]]$E[idx_data]
-  }
-
-  if (length(lhoods_tmp[[1]]$Ntrials) > 1) {
-    lhoods_tmp[[1]]$Ntrials <- lhoods_tmp[[1]]$Ntrials[idx_data]
-  }
-
-  if (length(lhoods_tmp[[1]]$weights) > 1) {
-    lhoods_tmp[[1]]$weights <- lhoods_tmp[[1]]$weights[idx_data]
-  }
-
-  if (isS4(lhoods_tmp[[1]]$data)) {
-    lhoods_tmp[[1]]$drange <- lapply(lhoods_tmp[[1]]$data@data, function(i) {
-      range(i)
-    })
-  } else {
-    lhoods_tmp[[1]]$drange <- lapply(lhoods_tmp[[1]]$data, function(i) {
-      range(i)
-    })
-  }
-
-  print(lhoods_tmp)
-
-  # Get the components list
-
-  list_of_components <- names(info[["model"]][["effects"]])
-
-  backup_list <- list()
-
-  total_length <- NULL
-  small_length <- length(idx_data)
-
-  for (comp in list_of_components) {
-    name_input_group <- info[["model"]][["effects"]][[comp]][["group"]][["input"]][["input"]]
-    if (!is.null(name_input_group)) {
-      name_input_group <- as.character(name_input_group)
-      comp_group_tmp <- info[["model"]][["effects"]][[comp]][["env"]][[name_input_group]]
-      if (is.null(total_length) && !is.null(comp_group_tmp)) {
-        total_length <- length(comp_group_tmp)
-
-        if (length(comp_group_tmp) == total_length) {
-          backup_list[[comp]][["group_val"]] <- info[["model"]][["effects"]][[comp]][["env"]][[name_input_group]]
-          comp_group_tmp <- comp_group_tmp[idx_data]
-          if (!is.null(comp_group_tmp)) {
-            assign(name_input_group, comp_group_tmp, envir = info[["model"]][["effects"]][[comp]][["env"]])
-          }
-        }
-      }
-    }
-    name_input_repl <- info[["model"]][["effects"]][[comp]][["replicate"]][["input"]][["input"]]
-    if (!is.null(name_input_repl)) {
-      name_input_repl <- as.character(name_input_repl)
-      comp_repl_tmp <- info[["model"]][["effects"]][[comp]][["env"]][[name_input_repl]]
-      if (is.null(total_length) && !is.null(comp_repl_tmp)) {
-        total_length <- length(comp_repl_tmp)
-        if (length(comp_repl_tmp) == total_length) {
-          backup_list[[comp]][["repl_val"]] <- info[["model"]][["effects"]][[comp]][["env"]][[name_input_repl]]
-          comp_repl_tmp <- comp_repl_tmp[idx_data]
-          if (!is.null(comp_repl_tmp)) {
-            assign(name_input_repl, comp_repl_tmp, envir = info[["model"]][["effects"]][[comp]][["env"]])
-          }
-        }
-      }
-    }
-  }
-
+  lhoods_tmp[[1]]$response_data$BRU_response[-idx_data] <- NA
 
   result <- inlabru::iinla(
       model = info[["model"]],
@@ -282,26 +210,6 @@ bru_rerun_with_data <- function(result, idx_data, true_CV, fit_verbose) {
       initial = result,
       options = info[["options"]]
     )
-
-  # Assigning back:
-
-  for (comp in list_of_components) {
-    name_input_group <- info[["model"]][["effects"]][[comp]][["group"]][["input"]][["input"]]
-    if (!is.null(name_input_group)) {
-      name_input_group <- as.character(name_input_group)
-      if (!is.null(backup_list[[comp]][["group_val"]])) {
-        assign(name_input_group, backup_list[[comp]][["group_val"]], envir = info[["model"]][["effects"]][[comp]][["env"]])
-      }
-    }
-    name_input_repl <- info[["model"]][["effects"]][[comp]][["replicate"]][["input"]][["input"]]
-    if (!is.null(name_input_repl)) {
-      name_input_repl <- as.character(name_input_repl)
-      if (!is.null(backup_list[[comp]][["repl_val"]])) {
-        assign(name_input_repl, backup_list[[comp]][["repl_val"]], envir = info[["model"]][["effects"]][[comp]][["env"]])
-      }
-    }
-  }
-
 
   new_timings <- result[["bru_iinla"]][["timings"]]$Iteration >
     max(original_timings$Iteration)
@@ -1385,13 +1293,7 @@ group_predict <- function(models, model_names = NULL, formula = NULL,
       df_pred <- select_indexes(data, test_indices[[fold]])
 
       df_pred <- prepare_df_pred(df_pred, models[[model_number]], test_indices[[fold]])
-      start_time <- Sys.time()
       new_model <- bru_rerun_with_data(models[[model_number]], train_indices[[fold]], true_CV = !pseudo_predict, fit_verbose = fit_verbose)
-      end_time <- Sys.time()
-
-      print("Time:")
-      print(end_time - start_time)
-
 
       if (print) {
         cat("Generating samples...\n")

@@ -65,30 +65,7 @@ rspde.intrinsic.matern <- function(mesh,
     }
     ### Location of object files
     
-    rspde_lib <- shared_lib
-    
-    if (shared_lib == "INLA") {
-        rspde_lib <- INLA::inla.external.lib("rSPDE")
-    } else if (shared_lib == "rSPDE") {
-        rspde_lib <- system.file("shared", package = "rSPDE")
-        if (Sys.info()["sysname"] == "Windows") {
-            rspde_lib <- paste0(rspde_lib, "/rspde_cgeneric_models.dll")
-        } else {
-            rspde_lib <- paste0(rspde_lib, "/rspde_cgeneric_models.so")
-        }
-    } else if (shared_lib == "detect") {
-        rspde_lib_local <- system.file("shared", package = "rSPDE")
-        if (Sys.info()["sysname"] == "Windows") {
-            rspde_lib_local <- paste0(rspde_lib_local, "/rspde_cgeneric_models.dll")
-        } else {
-            rspde_lib_local <- paste0(rspde_lib_local, "/rspde_cgeneric_models.so")
-        }
-        if (file.exists(rspde_lib_local)) {
-            rspde_lib <- rspde_lib_local
-        } else {
-            rspde_lib <- INLA::inla.external.lib("rSPDE")
-        }
-    }
+    rspde_lib <- get_shared_library(shared_lib)
     
     if (inherits(mesh, c("inla.mesh", "inla.mesh.1d"))) {
         d <- get_inla_mesh_dimension(mesh)
