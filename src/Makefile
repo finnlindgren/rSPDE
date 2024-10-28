@@ -9,7 +9,8 @@ obj = cgeneric_mvnormdens.o cgeneric_aux_nonstat.o cgeneric_aux_nonstat_fixed.o 
 	  cgeneric_gpgraph_alpha1.o cgeneric_gpgraph_alpha2.o \
 	  cgeneric_aux_gpgraph_alpha2.o cgeneric_gpgraph_alpha1_directional.o cgeneric_aux_gpgraph_alpha1_directional.o \
 	  inla_cgeneric_rspde_intrinsic_int_model.o \
-      cgeneric_aux_intrinsic.o cgeneric_rspde_intrinsic_eigen_cache.o
+      cgeneric_aux_intrinsic.o cgeneric_rspde_intrinsic_eigen_cache.o \
+      cgeneric_rspde_spacetime.o cgeneric_aux_spacetime.o
 
 all : rSPDE.so
 

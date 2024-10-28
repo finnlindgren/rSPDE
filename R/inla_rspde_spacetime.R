@@ -73,19 +73,27 @@ set_prior <- function(prior, default_mean, default_precision = 0.1) {
 #' @param beta Integer smoothness parameter \(\beta\).
 #' @param prior.kappa A list specifying the prior for the range parameter \(\kappa\). 
 #' This list may contain two elements: `mean` and/or `precision`, both of which must 
-#' be numeric scalars (numeric vectors of length 1). If `NULL`, default values will be used.
+#' be numeric scalars (numeric vectors of length 1). The precision refers to the prior 
+#' on `log(kappa)`. If `NULL`, default values will be used.
 #' @param prior.sigma A list specifying the prior for the variance parameter \(\sigma\). 
 #' This list may contain two elements: `mean` and/or `precision`, both of which must 
-#' be numeric scalars. If `NULL`, default values will be used.
+#' be numeric scalars. The precision refers to the prior on `log(sigma)`. If `NULL`, 
+#' default values will be used.
 #' @param prior.rho A list specifying the prior for the drift coefficient \(\rho\). 
 #' This list may contain two elements: `mean` and/or `precision`, both of which must 
-#' be numeric scalars. If `NULL`, default values will be used. Will not be used if `drift = FALSE`.
+#' be numeric scalars. The precision applies directly to `rho` without log transformation. 
+#' If `NULL`, default values will be used. Will not be used if `drift = FALSE`.
 #' @param prior.gamma A list specifying the prior for the weight \(\gamma\) in the SPDE 
 #' operator. This list may contain two elements: `mean` and/or `precision`, both of which 
-#' must be numeric scalars. If `NULL`, default values will be used.
+#' must be numeric scalars. The precision refers to the prior on `log(gamma)`. If `NULL`, 
+#' default values will be used.
+#' @param prior.precision A precision matrix for `log(kappa), log(sigma), log(gamma), rho`. This matrix replaces the precision 
+#' element from `prior.kappa`, `prior.sigma`, `prior.gamma`, and `prior.rho` respectively. If `NULL`, a diagonal precision matrix
+#' with default values will be used.
 #' @param shared_lib String specifying which shared library to use for the Cgeneric 
 #' implementation. Options are "detect", "INLA", or "rSPDE". You may also specify the 
 #' direct path to a .so (or .dll) file.
+#' @param debug Logical value indicating whether to enable INLA debug mode.
 #' @param ... Additional arguments passed internally for configuration purposes.
 #' @return An object of class `inla_rspde_spacetime` representing the FEM approximation of 
 #' the space-time Gaussian random field.
@@ -108,7 +116,6 @@ set_prior <- function(prior, default_mean, default_precision = 0.1) {
 #'                          alpha = 2, 
 #'                          beta = 1)
 #' 
-
 rspde.spacetime <- function(mesh_space = NULL,
                             mesh_time = NULL,
                             space_loc = NULL,
@@ -120,7 +127,9 @@ rspde.spacetime <- function(mesh_space = NULL,
                             prior.sigma = NULL,
                             prior.rho = NULL,
                             prior.gamma = NULL,
+                            prior.precision = NULL,
                             shared_lib = "detect",
+                            debug = FALSE,
                             ...) {
   if (!is.null(mesh_space) && !is.null(space_loc)) {
     stop("Provide only one of 'mesh_space' or 'space_loc', not both.")
@@ -162,45 +171,77 @@ rspde.spacetime <- function(mesh_space = NULL,
   prior.gamma <- set_prior(prior.gamma, op$gamma)
   prior.rho <- set_prior(prior.rho, op$rho)
 
+  # Set default 4x4 precision matrix if prior.precision is NULL
+  if (is.null(prior.precision)) {
+    prior.precision <- diag(c(
+      prior.kappa$precision, 
+      prior.sigma$precision, 
+      prior.gamma$precision, 
+      prior.rho$precision
+    ), 4)
+  } else if (!is.matrix(prior.precision) || !all(dim(prior.precision) == c(4, 4))) {
+    stop("prior.precision must be a 4x4 matrix.")
+  }
+
   rspde_lib <- get_shared_library(shared_lib)
+
+  Cmatrix  <-  as(as(as(op$Q, "dMatrix"), "generalMatrix"), "TsparseMatrix")
+  ii <- Cmatrix@i
+  Cmatrix@i <- Cmatrix@j
+  Cmatrix@j <- ii
+  idx <- which(Cmatrix@i <= Cmatrix@j)
+  Cmatrix@i <- Cmatrix@i[idx]
+  Cmatrix@j <- Cmatrix@j[idx]
+  Cmatrix@x <- Cmatrix@x[idx]
 
   list_args <- c(
     list(
-      model = "inla_cgeneric_rspde_spacetime",
+      model = "inla_cgeneric_rspde_spacetime_model",
       shlib = rspde_lib,
       n = nrow(op$Q),
-      d = op$d,
-      Q = op$Q,
+      debug = debug,
+      d = as.integer(op$d),
+      Q = Cmatrix,
       n_Gtlist = length(op$Gtlist),
       n_Ctlist = length(op$Ctlist),
       n_B0list = length(op$B0list),
       n_M2list = length(op$M2list),
       n_M2list2 = length(op$M2list2),
       prior.kappa.mean = prior.kappa$mean,
-      prior.kappa.precision = prior.kappa$precision,
       prior.sigma.mean = prior.sigma$mean,
-      prior.sigma.precision = prior.sigma$precision,
       prior.gamma.mean = prior.gamma$mean,
-      prior.gamma.precision = prior.gamma$precision,
       prior.rho.mean = prior.rho$mean,
-      prior.rho.precision = prior.rho$precision,
       beta = beta,
       alpha = alpha,
-      drift = as.integer(drift)
+      drift = as.integer(drift),
+      prior.precision = prior.precision
     ),
-    # Single-level lists
+    
+    # Single-level lists, each element added separately
     setNames(op$Gtlist, paste0("Gtlist", seq_along(op$Gtlist))),
     setNames(op$Ctlist, paste0("Ctlist", seq_along(op$Ctlist))),
     setNames(op$B0list, paste0("B0list", seq_along(op$B0list))),
-    # Two-level M2list with lengths
+    
+    # Flattened two-level M2list
     unlist(lapply(seq_along(op$M2list), function(i) {
-      c(setNames(list(length(op$M2list[[i]])), paste0("n_M2list_", i)),
-        setNames(op$M2list[[i]], paste0("M2list", i, seq_along(op$M2list[[i]]))))
+      c(
+        # Add the length of each first-level M2list element
+        setNames(list(length(op$M2list[[i]])), paste0("n_M2list_", i)),
+        
+        # Add each second-level element with a unique name
+        setNames(op$M2list[[i]], paste0("M2list", i, "_", seq_along(op$M2list[[i]])))
+      )
     }), recursive = FALSE),
-    # Two-level M2list2 with lengths, only if it has elements
+    
+    # Flattened two-level M2list2, only if it has elements
     if (length(op$M2list2) > 0) unlist(lapply(seq_along(op$M2list2), function(i) {
-      c(setNames(list(length(op$M2list2[[i]])), paste0("n_M2list2_", i)),
-        setNames(op$M2list2[[i]], paste0("M2list2", i, seq_along(op$M2list2[[i]]))))
+      c(
+        # Add the length of each first-level M2list2 element
+        setNames(list(length(op$M2list2[[i]])), paste0("n_M2list2_", i)),
+        
+        # Add each second-level element with a unique name
+        setNames(op$M2list2[[i]], paste0("M2list2", i, "_", seq_along(op$M2list2[[i]])))
+      )
     }), recursive = FALSE)
   )
 
@@ -213,6 +254,7 @@ rspde.spacetime <- function(mesh_space = NULL,
   model$prior.gamma <- prior.gamma
   model$prior.rho <- prior.rho
   model$d <- op$d
+  model$prior.precision <- prior.precision
   
   class(model) <- c("inla_rspde_spacetime", class(model))
 
@@ -220,33 +262,40 @@ rspde.spacetime <- function(mesh_space = NULL,
 }
 
 
-# make.L <- function(n,kappa,Glist){
-#     if(n > length(Glist)){
-#         stop("Glist too short.")
-#     }
-#     L <- 0
-#     for(k in 0:n){
-#         L <- L + choose(n,k)*kappa^(2*(n-k))*Glist[[k+1]]
-#     }
-#     return(L)
-# }
 
-# # Initialize Q with the first term
-# Q <- make.L(beta, kappa, Gtlist) + 2 * gamma * make.L(beta + alpha, kappa, B0list)
+#' @title rSPDE space time inlabru mapper
+#' @name bru_get_mapper.inla_rspde_spacetime
+#' @param model An `inla_rspde_spacetime` object for which to construct or extract a mapper
+#' @param \dots Arguments passed on to other methods
+#' @rdname bru_get_mapper.inla_rspde_spacetime
+#' @rawNamespace if (getRversion() >= "3.6.0") {
+#'   S3method(inlabru::bru_get_mapper, inla_rspde_spacetime)
+#'   S3method(inlabru::ibm_n, bru_mapper_inla_rspde_spacetime)
+#'   S3method(inlabru::ibm_values, bru_mapper_inla_rspde_spacetime)
+#'   S3method(inlabru::ibm_jacobian, bru_mapper_inla_rspde_spacetime)
+#' }
+#'
 
-# # Add contributions from alpha for Q
-# for (k in 0:alpha) {
-#     # Add the gamma^2 term
-#     Q <- Q + gamma^2 * choose(alpha, k) * rho^(2 * k) * make.L(beta + 2 * (alpha - k), kappa, Ctlist[(k + 1):length(Ctlist)])
+bru_get_mapper.inla_rspde_spacetime <- function(model, ...) {
+  mapper <- list(model = model)
+  inlabru::bru_mapper_define(mapper, new_class = "bru_mapper_inla_rspde_spacetime")
+}
 
-#     # Add M2 list terms for 1D and 2D cases
-#     if (d == 2) {
-#         M2x <- make.L(beta + alpha - k, kappa, M2list[[k + 1]])
-#         M2y <- make.L(beta + alpha - k, kappa, M2list2[[k + 1]])
-#         Q <- Q - 0.5 * gamma * choose(alpha, k) * (1 - (-1)^k) * rho[1]^(k) * (M2x + t(M2x))
-#         Q <- Q - 0.5 * gamma * choose(alpha, k) * (1 - (-1)^k) * rho[2]^(k) * (M2y + t(M2y))
-#     } else {
-#         M2 <- make.L(beta + alpha - k, kappa, M2list[[k + 1]])
-#         Q <- Q - 0.5 * (-1)^(floor(k / 2)) * gamma * choose(alpha, k) * (1 - (-1)^k) * rho^(k) * (M2 + t(M2))
-#     }
-# }
+#' @param mapper A `bru_mapper_inla_rspde_spacetime` object
+#' @rdname bru_get_mapper.inla_rspde_spacetime
+ibm_n.bru_mapper_inla_rspde_spacetime <- function(mapper, ...) {
+  model <- mapper[["model"]]
+  return(model$f$n)
+}
+#' @rdname bru_get_mapper.inla_rspde_spacetime
+ibm_values.bru_mapper_inla_rspde_spacetime <- function(mapper, ...) {
+  seq_len(inlabru::ibm_n(mapper))
+}
+#' @param input The values for which to produce a mapping matrix
+#' @rdname bru_get_mapper.inla_rspde_spacetime
+ibm_jacobian.bru_mapper_inla_rspde_spacetime <- function(mapper, input, ...) {
+  model <- mapper[["model"]]
+  space <- input$space
+  time <- input$time
+  return(model$A(space, time))
+}

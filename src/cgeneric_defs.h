@@ -11,7 +11,6 @@
 
 // https://stackoverflow.com/questions/9330915/number-of-combinations-n-choose-r-in-c
 
-double nChoosek( int n, int k );
 double cut_decimals(double nu);
 
 void daxpy_(int* N, double* DA, double* DX, int* INCX, double* DY, int* INCY);
@@ -81,3 +80,31 @@ void compute_Q_alpha2(int *i_Tc, int *j_Tc, double *x_Tc, double kappa, double t
 
 void compute_Q_alpha1_directional(int *i_Tc, int *j_Tc, double *x_Tc, double kappa, double tau, int nE, double w,
                                         int nrow_Tc, int ncol_Tc, int n_nonzero_Tc, double *edge_lengths, double *Q_out, int stat_ind_len, int *stat_ind, int BC);
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+double nChoosek(int n, int k);
+
+void compute_Q_dim1(
+    double kappa, double sigma, double gamma, double rho, int beta, int alpha,
+    double* result,
+    inla_cgeneric_smat_tp** Gtlist, int n_Gtlist,
+    inla_cgeneric_smat_tp** Ctlist, int n_Ctlist,
+    inla_cgeneric_smat_tp** B0list, int n_B0list,
+    inla_cgeneric_smat_tp*** M2list, int n_M2list);
+
+void compute_Q_dim2(
+    double kappa, double sigma, double gamma, double rho_1, double rho_2, int beta, int alpha,
+    double* result,
+    inla_cgeneric_smat_tp** Gtlist, int n_Gtlist,
+    inla_cgeneric_smat_tp** Ctlist, int n_Ctlist,
+    inla_cgeneric_smat_tp** B0list, int n_B0list,
+    inla_cgeneric_smat_tp*** M2list, int n_M2list,
+    inla_cgeneric_smat_tp*** M2list2, int n_M2list2);
+
+#ifdef __cplusplus
+}
+#endif
