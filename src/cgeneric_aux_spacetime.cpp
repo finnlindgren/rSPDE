@@ -21,7 +21,7 @@ void compute_Q_dim2(
     inla_cgeneric_smat_tp** Ctlist,
     inla_cgeneric_smat_tp** B0list,
     inla_cgeneric_smat_tp*** M2list, 
-    inla_cgeneric_smat_tp*** M2list2, 
+    inla_cgeneric_smat_tp*** M2list2
 );
 
 } // extern "C"
