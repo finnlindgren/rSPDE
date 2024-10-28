@@ -91,19 +91,19 @@ double nChoosek(int n, int k);
 void compute_Q_dim1(
     double kappa, double sigma, double gamma, double rho, int beta, int alpha,
     double* result,
-    inla_cgeneric_smat_tp** Gtlist, int n_Gtlist,
-    inla_cgeneric_smat_tp** Ctlist, int n_Ctlist,
-    inla_cgeneric_smat_tp** B0list, int n_B0list,
-    inla_cgeneric_smat_tp*** M2list, int n_M2list);
+    inla_cgeneric_smat_tp** Gtlist,
+    inla_cgeneric_smat_tp** Ctlist,
+    inla_cgeneric_smat_tp** B0list,
+    inla_cgeneric_smat_tp*** M2list);
 
 void compute_Q_dim2(
     double kappa, double sigma, double gamma, double rho_1, double rho_2, int beta, int alpha,
     double* result,
-    inla_cgeneric_smat_tp** Gtlist, int n_Gtlist,
-    inla_cgeneric_smat_tp** Ctlist, int n_Ctlist,
-    inla_cgeneric_smat_tp** B0list, int n_B0list,
-    inla_cgeneric_smat_tp*** M2list, int n_M2list,
-    inla_cgeneric_smat_tp*** M2list2, int n_M2list2);
+    inla_cgeneric_smat_tp** Gtlist, 
+    inla_cgeneric_smat_tp** Ctlist, 
+    inla_cgeneric_smat_tp** B0list, 
+    inla_cgeneric_smat_tp*** M2list,
+    inla_cgeneric_smat_tp*** M2list2);
 
 #ifdef __cplusplus
 }

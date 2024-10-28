@@ -193,8 +193,8 @@ double *inla_cgeneric_rspde_spacetime_model(inla_cgeneric_cmd_tp cmd, double *th
             ret[1] = M;   
 
             if(d == 1){
-                compute_Q_dim1(kappa, sigma, gamma, rho, beta, alpha, &ret[k], Gtlist, n_Gtlist, 
-                        Ctlist, n_Ctlist, B0list, n_B0list, M2list, n_M2list);
+                compute_Q_dim1(kappa, sigma, gamma, rho, beta, alpha, &ret[k], Gtlist, 
+                        Ctlist, B0list, M2list);
             } 
 
             break;
