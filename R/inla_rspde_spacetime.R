@@ -297,5 +297,5 @@ ibm_jacobian.bru_mapper_inla_rspde_spacetime <- function(mapper, input, ...) {
   model <- mapper[["model"]]
   space <- input$space
   time <- input$time
-  return(model$A(space, time))
+  return(model$A(loc = space, time = time))
 }

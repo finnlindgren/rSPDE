@@ -13,9 +13,6 @@ docs
 # inla
 inla.model/
 
-#index
-index_files/
-
 # History files
 .Rhistory
 .Rapp.history
