@@ -1972,3 +1972,25 @@ check_packages <- function(packages, func) {
              )
     }
 }
+
+#' @noRd 
+# Get appropriate shared library
+get_shared_library <- function(shared_lib) {
+  if (shared_lib == "INLA") {
+    return(INLA::inla.external.lib("rSPDE"))
+  }
+  if (shared_lib == "rSPDE") {
+    rspde_lib <- system.file("shared", package = "rSPDE")
+    return(ifelse(Sys.info()["sysname"] == "Windows",
+                 paste0(rspde_lib, "/rspde_cgeneric_models.dll"),
+                 paste0(rspde_lib, "/rspde_cgeneric_models.so")))
+  }
+  if (shared_lib == "detect") {
+    rspde_lib_local <- system.file("shared", package = "rSPDE")
+    lib_path <- ifelse(Sys.info()["sysname"] == "Windows",
+                      paste0(rspde_lib_local, "/rspde_cgeneric_models.dll"),
+                      paste0(rspde_lib_local, "/rspde_cgeneric_models.so"))
+    return(if (file.exists(lib_path)) lib_path else INLA::inla.external.lib("rSPDE"))
+  }
+  stop("'shared_lib' must be 'INLA', 'rSPDE', or 'detect'")
+}

@@ -64,7 +64,6 @@ export(get.initial.values.rSPDE)
 export(gg_df)
 export(glance)
 export(graph_data_rspde)
-export(group_predict)
 export(intrinsic.matern.operators)
 export(matern.covariance)
 export(matern.operators)
@@ -93,6 +92,7 @@ export(rspde.mesh.project)
 export(rspde.mesh.projector)
 export(rspde.metric_graph)
 export(rspde.result)
+export(rspde.spacetime)
 export(rspde_lme)
 export(spacetime.operators)
 export(spde.make.A)
@@ -105,6 +105,13 @@ if (getRversion() >= "3.6.0") {
   S3method(inlabru::ibm_n, bru_mapper_inla_rspde)
   S3method(inlabru::ibm_values, bru_mapper_inla_rspde)
   S3method(inlabru::ibm_jacobian, bru_mapper_inla_rspde)
+}
+
+if (getRversion() >= "3.6.0") {
+  S3method(inlabru::bru_get_mapper, inla_rspde_spacetime)
+  S3method(inlabru::ibm_n, bru_mapper_inla_rspde_spacetime)
+  S3method(inlabru::ibm_values, bru_mapper_inla_rspde_spacetime)
+  S3method(inlabru::ibm_jacobian, bru_mapper_inla_rspde_spacetime)
 }
 
 import(Matrix)

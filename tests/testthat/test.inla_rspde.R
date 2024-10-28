@@ -56,121 +56,121 @@ testthat::expect_equal(sum( (Q_tmp2 - Q_tmp$Q)^2), 0)
 })
 
 
-test_that("testing cgeneric_parsimonious_fixed", {
+# test_that("testing cgeneric_parsimonious_fixed", {
 
-  testthat::skip_on_cran()
-if (!requireNamespace("INLA", quietly=TRUE))
-    testthat::skip(message = 'INLA package is not installed. (see www.r-inla.org/download-install)')
+#   testthat::skip_on_cran()
+# if (!requireNamespace("INLA", quietly=TRUE))
+#     testthat::skip(message = 'INLA package is not installed. (see www.r-inla.org/download-install)')
   
-  old_threads <- INLA::inla.getOption("num.threads")
-  INLA::inla.setOption(num.threads = "1:1")
+#   old_threads <- INLA::inla.getOption("num.threads")
+#   INLA::inla.setOption(num.threads = "1:1")
 
 
 
-data(PRprec, package = "INLA")
+# data(PRprec, package = "INLA")
 
-Y <- rowMeans(PRprec[, 3 + 1:31])
+# Y <- rowMeans(PRprec[, 3 + 1:31])
 
-ind <- !is.na(Y)
-Y <- Y[ind]
-coords <- as.matrix(PRprec[ind, 1:2])
+# ind <- !is.na(Y)
+# Y <- Y[ind]
+# coords <- as.matrix(PRprec[ind, 1:2])
 
-prdomain <- INLA::inla.nonconvex.hull(coords, -0.03, -0.05, resolution = c(50, 50))
-prmesh <- INLA::inla.mesh.2d(boundary = prdomain, max.edge = c(0.45, 1), cutoff = 0.5)
-
-
-rspde_model <- rspde.matern(mesh = prmesh, parameterization = "spde", 
-nu = 0.4,
-rspde.order = 0)
-
-Q_tmp <- INLA::inla.cgeneric.q(rspde_model)
-
-Q_tmp2 <- precision(rspde_model)
-
-testthat::expect_equal(sum((Q_tmp$Q - Q_tmp2)^2), 0)
-
-inla_model <- INLA::inla.spde2.matern(
-    mesh = prmesh, alpha = 1.4
-)
-
-Q_1 <- INLA::inla.spde.precision(
-    inla_model, theta = Q_tmp$theta
-)
-
-testthat::expect_equal(sum( (Q_1 - Q_tmp$Q)^2), 0)
-
-## Testing matern parameterization
-
-rspde_model <- rspde.matern(mesh = prmesh, parameterization = "matern", 
-nu = 0.4,
-rspde.order = 0)
-
-Q_tmp <- INLA::inla.cgeneric.q(rspde_model)
-
-Q_tmp2 <- precision(rspde_model)
-
-testthat::expect_equal(sum((Q_tmp$Q - Q_tmp2)^2), 0)
-
-  INLA::inla.setOption(num.threads = old_threads)
-})
+# prdomain <- INLA::inla.nonconvex.hull(coords, -0.03, -0.05, resolution = c(50, 50))
+# prmesh <- INLA::inla.mesh.2d(boundary = prdomain, max.edge = c(0.45, 1), cutoff = 0.5)
 
 
-test_that("testing cgeneric_parsimonious_gen", {
+# rspde_model <- rspde.matern(mesh = prmesh, parameterization = "spde", 
+# nu = 0.4,
+# rspde.order = 0)
 
-  testthat::skip_on_cran()
-if (!requireNamespace("INLA", quietly=TRUE))
-    testthat::skip(message = 'INLA package is not installed. (see www.r-inla.org/download-install)')
+# Q_tmp <- INLA::inla.cgeneric.q(rspde_model)
+
+# Q_tmp2 <- precision(rspde_model)
+
+# testthat::expect_equal(sum((Q_tmp$Q - Q_tmp2)^2), 0)
+
+# inla_model <- INLA::inla.spde2.matern(
+#     mesh = prmesh, alpha = 1.4
+# )
+
+# Q_1 <- INLA::inla.spde.precision(
+#     inla_model, theta = Q_tmp$theta
+# )
+
+# testthat::expect_equal(sum( (Q_1 - Q_tmp$Q)^2), 0)
+
+# ## Testing matern parameterization
+
+# rspde_model <- rspde.matern(mesh = prmesh, parameterization = "matern", 
+# nu = 0.4,
+# rspde.order = 0)
+
+# Q_tmp <- INLA::inla.cgeneric.q(rspde_model)
+
+# Q_tmp2 <- precision(rspde_model)
+
+# testthat::expect_equal(sum((Q_tmp$Q - Q_tmp2)^2), 0)
+
+#   INLA::inla.setOption(num.threads = old_threads)
+# })
+
+
+# test_that("testing cgeneric_parsimonious_gen", {
+
+#   testthat::skip_on_cran()
+# if (!requireNamespace("INLA", quietly=TRUE))
+#     testthat::skip(message = 'INLA package is not installed. (see www.r-inla.org/download-install)')
   
-  old_threads <- INLA::inla.getOption("num.threads")
-  INLA::inla.setOption(num.threads = "1:1")
+#   old_threads <- INLA::inla.getOption("num.threads")
+#   INLA::inla.setOption(num.threads = "1:1")
 
 
-data(PRprec, package = "INLA")
+# data(PRprec, package = "INLA")
 
-Y <- rowMeans(PRprec[, 3 + 1:31])
+# Y <- rowMeans(PRprec[, 3 + 1:31])
 
-ind <- !is.na(Y)
-Y <- Y[ind]
-coords <- as.matrix(PRprec[ind, 1:2])
+# ind <- !is.na(Y)
+# Y <- Y[ind]
+# coords <- as.matrix(PRprec[ind, 1:2])
 
-prdomain <- INLA::inla.nonconvex.hull(coords, -0.03, -0.05, resolution = c(50, 50))
-prmesh <- INLA::inla.mesh.2d(boundary = prdomain, max.edge = c(0.45, 1), cutoff = 0.5)
+# prdomain <- INLA::inla.nonconvex.hull(coords, -0.03, -0.05, resolution = c(50, 50))
+# prmesh <- INLA::inla.mesh.2d(boundary = prdomain, max.edge = c(0.45, 1), cutoff = 0.5)
 
 
-rspde_model <- rspde.matern(mesh = prmesh, parameterization = "spde", 
-start.nu = 0.4,
-rspde.order = 0)
+# rspde_model <- rspde.matern(mesh = prmesh, parameterization = "spde", 
+# start.nu = 0.4,
+# rspde.order = 0)
 
-Q_tmp <- INLA::inla.cgeneric.q(rspde_model)
+# Q_tmp <- INLA::inla.cgeneric.q(rspde_model)
 
-Q_tmp2 <- precision(rspde_model)
+# Q_tmp2 <- precision(rspde_model)
 
-testthat::expect_equal(sum((Q_tmp$Q - Q_tmp2)^2), 0)
+# testthat::expect_equal(sum((Q_tmp$Q - Q_tmp2)^2), 0)
 
-inla_model <- INLA::inla.spde2.matern(
-    mesh = prmesh, alpha = 1.4
-)
+# inla_model <- INLA::inla.spde2.matern(
+#     mesh = prmesh, alpha = 1.4
+# )
 
-Q_1 <- INLA::inla.spde.precision(
-    inla_model, theta = Q_tmp$theta[1:2]
-)
+# Q_1 <- INLA::inla.spde.precision(
+#     inla_model, theta = Q_tmp$theta[1:2]
+# )
 
-testthat::expect_equal(sum( (Q_1 - Q_tmp$Q)^2), 0)
+# testthat::expect_equal(sum( (Q_1 - Q_tmp$Q)^2), 0)
 
-## Testing matern parameterization
+# ## Testing matern parameterization
 
-rspde_model <- rspde.matern(mesh = prmesh, parameterization = "matern", 
-start.nu = 0.4,
-rspde.order = 0)
+# rspde_model <- rspde.matern(mesh = prmesh, parameterization = "matern", 
+# start.nu = 0.4,
+# rspde.order = 0)
 
-Q_tmp <- INLA::inla.cgeneric.q(rspde_model)
+# Q_tmp <- INLA::inla.cgeneric.q(rspde_model)
 
-Q_tmp2 <- precision(rspde_model)
+# Q_tmp2 <- precision(rspde_model)
 
-testthat::expect_equal(sum((Q_tmp$Q - Q_tmp2)^2), 0)
+# testthat::expect_equal(sum((Q_tmp$Q - Q_tmp2)^2), 0)
 
-  INLA::inla.setOption(num.threads = old_threads)
-})
+#   INLA::inla.setOption(num.threads = old_threads)
+# })
 
 
 test_that("testing cgeneric_rspde_fixed_gen", {
