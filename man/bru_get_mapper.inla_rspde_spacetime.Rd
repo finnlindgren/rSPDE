@@ -7,13 +7,13 @@
 \alias{ibm_jacobian.bru_mapper_inla_rspde_spacetime}
 \title{rSPDE space time inlabru mapper}
 \usage{
-bru_get_mapper.inla_rspde_spacetime(model, ...)
+\method{bru_get_mapper}{inla_rspde_spacetime}(model, ...)
 
-ibm_n.bru_mapper_inla_rspde_spacetime(mapper, ...)
+\method{ibm_n}{bru_mapper_inla_rspde_spacetime}(mapper, ...)
 
-ibm_values.bru_mapper_inla_rspde_spacetime(mapper, ...)
+\method{ibm_values}{bru_mapper_inla_rspde_spacetime}(mapper, ...)
 
-ibm_jacobian.bru_mapper_inla_rspde_spacetime(mapper, input, ...)
+\method{ibm_jacobian}{bru_mapper_inla_rspde_spacetime}(mapper, input, ...)
 }
 \arguments{
 \item{model}{An \code{inla_rspde_spacetime} object for which to construct or extract a mapper}
