@@ -1652,7 +1652,24 @@ cross_validation <- function(models, model_names = NULL, scores = c("mse", "crps
   return(out)
 }
 
-
+#' @name group_predict
+#' @title Perform prediction on a testing set based on a training set
+#' @description Compute prediction of a formula-based expression on a testing set based on a training set.
+#' @param models A fitted model obtained from calling the `bru()` function or a list of models fitted with the `bru()` function.
+#' @param model_names A vector containing the names of the models to appear in the returned `data.frame`. If `NULL`, the names will be of the form `Model 1`, `Model 2`, and so on. By default, it will try to obtain the name from the models list.
+#' @param formula A formula where the right hand side defines an R expression to evaluate for each generated sample. If `NULL``, the latent and hyperparameter states are returned as named list elements. See the manual for the `predict` method in the `inlabru` package.
+#' @param train_indices A list containing the indices of the observations for the model to be trained, or a numerical vector containing the indices.
+#' @param test_indices A list containing the indices of the test data, where the prediction will be done, or a numerical vector containing the indices.
+#' @param n_samples Number of samples to compute the posterior statistics to be used to compute the scores.
+#' @param pseudo_predict If `TRUE`, the models will NOT be refitted on the training data, and the parameters obtained on the entire dataset will be used. If `FALSE`, the models will be refitted on the training data.
+#' @param return_samples Should the posterior samples be returned?
+#' @param return_hyper_samples Should samples for the hyperparameters be obtained?
+#' @param n_hyper_samples Number of independent samples of the hyper parameters of size `n_samples`.
+#' @param compute_posterior_means Should the posterior means be computed from the posterior samples?
+#' @param print Should partial results be printed throughout the computation?
+#' @param fit_verbose Should INLA's run during the prediction be verbose?
+#' @return A data.frame with the fitted models and the corresponding scores.
+#' @export
 
 group_predict <- function(models, model_names = NULL, formula = NULL,
                           train_indices, test_indices, n_samples = 1000,
