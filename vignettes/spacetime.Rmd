@@ -136,11 +136,18 @@ ggplot(df_plot) + aes(x = space, y = time, fill = field) +
 ```
 
 ## Parameter estimation
-To estimate the model parameters based on this data, we can use the `rspde_lme` function. For this, we collect the data in a data frame, that also contanis the spatial locations, and we fit the model:
+
+To estimate the model parameters based on this data, we can use the our `rspde_lme` function or our `inlabru` implementation. For this, we collect the data in a data frame, that also contanis the spatial locations, and
 
 ```{r}
-df <- data.frame(y = as.matrix(Y), x = obs.loc$x, t = obs.loc$t)
-res <- rspde_lme(y ~ 1, loc = "x", loc_time = "t", data = df, model = op, parallel = TRUE)
+df <- data.frame(y = as.matrix(Y), space = obs.loc$x, time = obs.loc$t)
+```
+
+### `rspde_lme` implementation
+We now fit the model:
+
+```{r}
+res <- rspde_lme(y ~ 1, loc = "space", loc_time = "time", data = df, model = op, parallel = TRUE)
 
 ```
 
@@ -179,6 +186,39 @@ ggplot(df_plot) + aes(x = space, y = time, fill = field) +
 
 ```
 
+### `inlabru` Implementation
+
+Let us now fit the model using our `inlabru` implementation. We start by creating the model object with the `rspde.spacetime()` function:
+```{r}
+library(inlabru)
+st_bru <- rspde.spacetime(space_loc = s, time_loc = t, alpha = 1, beta=1)
+```
+
+We now create the model component, which requires the user to pass the index as a list containing the elements `space` with the spatial indices and `time` with the temporal indices:
+
+```{r}
+cmp <- y ~ 1 + field(list(space=space, time = time), model = st_bru)
+```
+
+We are now in a position to fit the model:
+
+```{r}
+bru_fit <- bru(cmp, data = df)
+```
+
+Let us now compare the estimated results (the means of the parameters) with the true values:
+
+```{r}
+results <- data.frame(kappa = c(kappa, exp(bru_fit$summary.hyperpar$mean[2])), 
+                      sigma = c(sigma, exp(bru_fit$summary.hyperpar$mean[3])),
+                      gamma = c(gamma, exp(bru_fit$summary.hyperpar$mean[4])), 
+                      rho = c(rho, bru_fit$summary.hyperpar$mean[5]),
+                      sigma.e = c(sigma.e, sqrt(1/bru_fit$summary.hyperpar$mean[1])),
+                      intercept = c(0, bru_fit$summary.fixed$mean),
+                      row.names = c("True", "Estimate"))
+                      
+print(results)
+```
 
 ## A spatial example
 Let us now illustrate how to implement a spatial version. We start by creating a 
@@ -329,6 +369,63 @@ res <- rspde_lme(y ~ 1, loc = c("edge", "pos"), loc_time = "t", data = df,
 
 ```{r}
 summary(res)
+```
+
+Let us compare the estimated results with the true values:
+```{r}
+results <- data.frame(kappa = c(kappa, res$coeff$random_effects[1]), 
+                      sigma = c(sigma, res$coeff$random_effects[2]),
+                      gamma = c(gamma, res$coeff$random_effects[3]), 
+                      rho = c(rho, res$coeff$random_effects[4]),
+                      sigma.e = c(sigma.e, res$coeff$measurement_error),
+                      intercept = c(0, res$coeff$fixed_effects),
+                      row.names = c("True", "Estimate"))
+                      
+print(results)
+```
+
+Let us now fit the same model using our `inlabru` implementation. We start by creating the model object. First, we need to create a mesh for the time.
+
+```{r}
+mesh_time <- fmesher::fm_mesh_1d(t)
+```
+
+```{r}
+st_bru_graph <- rspde.spacetime(mesh_space = graph, 
+                  mesh_time = mesh_time, alpha = 1, beta=1)
+```
+
+Let us create a data list containing the spatial locations as well as the time locations:
+
+```{r}
+df_bru <- data.frame(y = Y, 
+              edge_number = PtE[,1], 
+              distance_on_edge = PtE[,2],
+              time = t.obs)
+```
+
+Let us now create the model component:
+```{r}
+cmp_graph <- y ~ 1 + field(list(space=cbind(edge_number, distance_on_edge), 
+                    time = time), model = st_bru_graph)
+```
+
+We are now in a position to fit the model:
+
+```{r}
+bru_fit_graph <- bru(cmp_graph, data = df_bru)
+```
+
+```{r}
+results <- data.frame(kappa = c(kappa, exp(bru_fit_graph$summary.hyperpar$mean[2])), 
+                      sigma = c(sigma, exp(bru_fit_graph$summary.hyperpar$mean[3])),
+                      gamma = c(gamma, exp(bru_fit_graph$summary.hyperpar$mean[4])), 
+                      rho = c(rho, bru_fit_graph$summary.hyperpar$mean[5]),
+                      sigma.e = c(sigma.e, sqrt(1/bru_fit_graph$summary.hyperpar$mean[1])),
+                      intercept = c(0, bru_fit_graph$summary.fixed$mean),
+                      row.names = c("True", "Estimate"))
+                      
+print(results)
 ```
 ## References
 
