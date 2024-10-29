@@ -305,8 +305,7 @@ prepare_df_pred <- function(df_pred, result, idx_test) {
   return(df_pred)
 }
 
-#' @noRd
-
+# #' @noRd
 # calculate_scores <- function(family, test_data, posterior_samples, hyper_samples, n_samples, parallelize_RP, n_cores_RP) {
 #   scores <- list()
   
@@ -796,6 +795,8 @@ prepare_df_pred <- function(df_pred, result, idx_test) {
     
 #     return(scores)
 # }
+
+
 
 #' @name cross_validation
 #' @title Perform cross-validation on a list of fitted models.
