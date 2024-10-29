@@ -41,7 +41,6 @@
 #' @importFrom fmesher fm_mesh_2d fm_basis fm_block fm_row_kron fm_mesh_1d fm_fem fm_evaluate fm_evaluator
 #' @importFrom lifecycle deprecated
 #' @importFrom broom augment glance
-#' @globalVariables c("x1", "x2", "u", "type")
 #' @export augment glance
 #'
 NULL
