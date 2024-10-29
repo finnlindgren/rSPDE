@@ -43,14 +43,15 @@ set_prior <- function(prior, default_mean, default_precision, p = 1) {
   return(prior)
 }
 
+
 #' Space-Time Random Fields via SPDE Approximation
 #' 
 #' `rspde.spacetime` computes a Finite Element Method (FEM) approximation of a 
 #' Gaussian random field defined as the solution to the stochastic partial 
 #' differential equation (SPDE):
 #' \deqn{d u + \gamma(\kappa^2 + \rho\cdot\nabla - \Delta)^\alpha u = \sigma dW_C}
-#' where \( C \) is a Whittle-Matérn covariance operator with smoothness parameter 
-#' \(\beta\) and range parameter \(\kappa\). This function is designed to handle 
+#' where \eqn{C} is a Whittle-Matérn covariance operator with smoothness parameter 
+#' \eqn{\beta} and range parameter \eqn{\kappa}. This function is designed to handle 
 #' space-time random fields using either 1D spatial models or higher-dimensional 
 #' FEM-based approaches.
 #' 
@@ -62,28 +63,28 @@ set_prior <- function(prior, default_mean, default_precision, p = 1) {
 #' @param time_loc A vector of temporal locations for mesh nodes. This should be 
 #' provided when `mesh_time` is not specified.
 #' @param drift Logical value indicating whether the drift term should be included. 
-#' If `FALSE`, the drift coefficient `\rho` is set to zero.
-#' @param alpha Integer smoothness parameter \(\alpha\).
-#' @param beta Integer smoothness parameter \(\beta\).
-#' @param prior.kappa A list specifying the prior for the range parameter \(\kappa\). 
+#' If `FALSE`, the drift coefficient \eqn{\rho} is set to zero.
+#' @param alpha Integer smoothness parameter \eqn{\alpha}.
+#' @param beta Integer smoothness parameter \eqn{\beta}.
+#' @param prior.kappa A list specifying the prior for the range parameter \eqn{\kappa}. 
 #' This list may contain two elements: `mean` and/or `precision`, both of which must 
 #' be numeric scalars (numeric vectors of length 1). The precision refers to the prior 
-#' on `log(kappa)`. If `NULL`, default values will be used.
-#' @param prior.sigma A list specifying the prior for the variance parameter \(\sigma\). 
+#' on \eqn{\log(\kappa)}. If `NULL`, default values will be used.
+#' @param prior.sigma A list specifying the prior for the variance parameter \eqn{\sigma}. 
 #' This list may contain two elements: `mean` and/or `precision`, both of which must 
-#' be numeric scalars. The precision refers to the prior on `log(sigma)`. If `NULL`, 
+#' be numeric scalars. The precision refers to the prior on \eqn{\log(\sigma)}. If `NULL`, 
 #' default values will be used.
-#' @param prior.rho A list specifying the prior for the drift coefficient \(\rho\). 
+#' @param prior.rho A list specifying the prior for the drift coefficient \eqn{\rho}. 
 #' This list may contain two elements: `mean` and/or `precision`, both of which must 
 #' be numeric scalars if dimension is one, and numeric vectors of length 2 if dimension is 2. 
-#' The precision applies directly to `rho` without log transformation. 
+#' The precision applies directly to \eqn{\rho} without log transformation. 
 #' If `NULL`, default values will be used. Will not be used if `drift = FALSE`.
-#' @param prior.gamma A list specifying the prior for the weight \(\gamma\) in the SPDE 
+#' @param prior.gamma A list specifying the prior for the weight \eqn{\gamma} in the SPDE 
 #' operator. This list may contain two elements: `mean` and/or `precision`, both of which 
-#' must be numeric scalars. The precision refers to the prior on `log(gamma)`. If `NULL`, 
+#' must be numeric scalars. The precision refers to the prior on \eqn{\log(\gamma)}. If `NULL`, 
 #' default values will be used.
-#' @param prior.precision A precision matrix for `log(kappa), log(sigma), log(gamma), rho`. This matrix replaces the precision 
-#' element from `prior.kappa`, `prior.sigma`, `prior.gamma`, and `prior.rho` respectively. For dimension 1 `prior.precision` must be a 4x4 matrix. For dimension 2, rho is a vector of length 2, so in this case `prior.precision` must be a 5x5 matrix. If `NULL`, a diagonal precision matrix with default values will be used.
+#' @param prior.precision A precision matrix for \eqn{\log(\kappa), \log(\sigma), \log(\gamma), \rho}. This matrix replaces the precision 
+#' element from `prior.kappa`, `prior.sigma`, `prior.gamma`, and `prior.rho` respectively. For dimension 1 `prior.precision` must be a 4x4 matrix. For dimension 2, \eqn{\rho} is a vector of length 2, so in this case `prior.precision` must be a 5x5 matrix. If `NULL`, a diagonal precision matrix with default values will be used.
 #' @param shared_lib String specifying which shared library to use for the Cgeneric 
 #' implementation. Options are "detect", "INLA", or "rSPDE". You may also specify the 
 #' direct path to a .so (or .dll) file.
@@ -104,12 +105,12 @@ set_prior <- function(prior, default_mean, default_precision, p = 1) {
 #' time_loc <- seq(from = 0, to = 10, length.out = 11)
 #' 
 #' # Create the model
-#' model <- rspde.spacetime(graph = graph, 
+#' model <- rspde.spacetime(mesh_space = graph, 
 #'                          time_loc = time_loc, 
-#'                          include_drift = FALSE, 
 #'                          alpha = 2, 
 #'                          beta = 1)
 #' 
+
 rspde.spacetime <- function(mesh_space = NULL,
                             mesh_time = NULL,
                             space_loc = NULL,

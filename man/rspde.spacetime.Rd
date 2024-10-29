@@ -35,35 +35,35 @@ This should be provided when \code{mesh_space} is not specified.}
 provided when \code{mesh_time} is not specified.}
 
 \item{drift}{Logical value indicating whether the drift term should be included.
-If \code{FALSE}, the drift coefficient \verb{\\rho} is set to zero.}
+If \code{FALSE}, the drift coefficient \eqn{\rho} is set to zero.}
 
-\item{alpha}{Integer smoothness parameter \(\alpha\).}
+\item{alpha}{Integer smoothness parameter \eqn{\alpha}.}
 
-\item{beta}{Integer smoothness parameter \(\beta\).}
+\item{beta}{Integer smoothness parameter \eqn{\beta}.}
 
-\item{prior.kappa}{A list specifying the prior for the range parameter \(\kappa\).
+\item{prior.kappa}{A list specifying the prior for the range parameter \eqn{\kappa}.
 This list may contain two elements: \code{mean} and/or \code{precision}, both of which must
 be numeric scalars (numeric vectors of length 1). The precision refers to the prior
-on \code{log(kappa)}. If \code{NULL}, default values will be used.}
+on \eqn{\log(\kappa)}. If \code{NULL}, default values will be used.}
 
-\item{prior.sigma}{A list specifying the prior for the variance parameter \(\sigma\).
+\item{prior.sigma}{A list specifying the prior for the variance parameter \eqn{\sigma}.
 This list may contain two elements: \code{mean} and/or \code{precision}, both of which must
-be numeric scalars. The precision refers to the prior on \code{log(sigma)}. If \code{NULL},
+be numeric scalars. The precision refers to the prior on \eqn{\log(\sigma)}. If \code{NULL},
 default values will be used.}
 
-\item{prior.rho}{A list specifying the prior for the drift coefficient \(\rho\).
+\item{prior.rho}{A list specifying the prior for the drift coefficient \eqn{\rho}.
 This list may contain two elements: \code{mean} and/or \code{precision}, both of which must
 be numeric scalars if dimension is one, and numeric vectors of length 2 if dimension is 2.
-The precision applies directly to \code{rho} without log transformation.
+The precision applies directly to \eqn{\rho} without log transformation.
 If \code{NULL}, default values will be used. Will not be used if \code{drift = FALSE}.}
 
-\item{prior.gamma}{A list specifying the prior for the weight \(\gamma\) in the SPDE
+\item{prior.gamma}{A list specifying the prior for the weight \eqn{\gamma} in the SPDE
 operator. This list may contain two elements: \code{mean} and/or \code{precision}, both of which
-must be numeric scalars. The precision refers to the prior on \code{log(gamma)}. If \code{NULL},
+must be numeric scalars. The precision refers to the prior on \eqn{\log(\gamma)}. If \code{NULL},
 default values will be used.}
 
-\item{prior.precision}{A precision matrix for \verb{log(kappa), log(sigma), log(gamma), rho}. This matrix replaces the precision
-element from \code{prior.kappa}, \code{prior.sigma}, \code{prior.gamma}, and \code{prior.rho} respectively. For dimension 1 \code{prior.precision} must be a 4x4 matrix. For dimension 2, rho is a vector of length 2, so in this case \code{prior.precision} must be a 5x5 matrix. If \code{NULL}, a diagonal precision matrix with default values will be used.}
+\item{prior.precision}{A precision matrix for \eqn{\log(\kappa), \log(\sigma), \log(\gamma), \rho}. This matrix replaces the precision
+element from \code{prior.kappa}, \code{prior.sigma}, \code{prior.gamma}, and \code{prior.rho} respectively. For dimension 1 \code{prior.precision} must be a 4x4 matrix. For dimension 2, \eqn{\rho} is a vector of length 2, so in this case \code{prior.precision} must be a 5x5 matrix. If \code{NULL}, a diagonal precision matrix with default values will be used.}
 
 \item{shared_lib}{String specifying which shared library to use for the Cgeneric
 implementation. Options are "detect", "INLA", or "rSPDE". You may also specify the
@@ -82,8 +82,8 @@ the space-time Gaussian random field.
 Gaussian random field defined as the solution to the stochastic partial
 differential equation (SPDE):
 \deqn{d u + \gamma(\kappa^2 + \rho\cdot\nabla - \Delta)^\alpha u = \sigma dW_C}
-where \( C \) is a Whittle-Matérn covariance operator with smoothness parameter
-\(\beta\) and range parameter \(\kappa\). This function is designed to handle
+where \eqn{C} is a Whittle-Matérn covariance operator with smoothness parameter
+\eqn{\beta} and range parameter \eqn{\kappa}. This function is designed to handle
 space-time random fields using either 1D spatial models or higher-dimensional
 FEM-based approaches.
 }
@@ -98,9 +98,8 @@ graph$compute_fem()
 time_loc <- seq(from = 0, to = 10, length.out = 11)
 
 # Create the model
-model <- rspde.spacetime(graph = graph, 
+model <- rspde.spacetime(mesh_space = graph, 
                          time_loc = time_loc, 
-                         include_drift = FALSE, 
                          alpha = 2, 
                          beta = 1)
 

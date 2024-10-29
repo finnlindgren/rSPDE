@@ -3,7 +3,7 @@
 #' 
 #' `spacetime.operators` is used for computing a FEM approximation of a Gaussian 
 #' random field defined as a solution to the SPDE
-#' \deqn{d u + \gamma(\kappa^2 + \rho\cdot\Nabla - \Delta)^\alpha u = \sigma dW_C.}
+#' \deqn{d u + \gamma(\kappa^2 + \rho\cdot\nabla - \Delta)^\alpha u = \sigma dW_C.}
 #'where C is a Whittle-Matern covariance operator with smoothness parameter 
 #'\eqn{\beta} and range parameter \eqn{\kappa}
 #' @param mesh_space Spatial mesh for FEM approximation
@@ -111,7 +111,9 @@ spacetime.operators <- function(mesh_space = NULL,
             warning("The graph object did not contain a mesh, one was created with h = 0.01. Use the build_mesh() method to replace this mesh with a new one.")
             graph$build_mesh(h = 0.01)
         }
-        graph$compute_fem()
+        if(is.null(graph$mesh$C)){
+            graph$compute_fem()
+        }
         C <- graph$mesh$C
         Ci <- Diagonal(1/rowSums(C),n=dim(C)[1])
         G <- graph$mesh$G
@@ -273,8 +275,13 @@ spacetime.operators <- function(mesh_space = NULL,
     }
     
     if(has_graph) { 
-        plot_covariances <- function(t.ind, s.ind, t.shift=0) {
-            
+        plot_covariances <- function(t.ind, s.ind, t.shift=NULL) {
+            if(is.null(t.shift)){
+                t.shift <- 0
+            }            
+            # Adding this to pass the checks and avoiding creating global variables
+            x1 <- x2 <- u <- type <- y <- space <- NULL            
+
             check_packages(c("ggplot2", "gridExtra"), "plot_function()")
             N <- dim(Q)[1]
         
@@ -332,7 +339,13 @@ spacetime.operators <- function(mesh_space = NULL,
             return(fig)
         }
     } else if(d==2){
-        plot_covariances <- function(t.ind, s.ind, t.shift=0) {
+        plot_covariances <- function(t.ind, s.ind, t.shift=NULL) {
+            if(is.null(t.shift)){
+                t.shift <- 0
+            }
+            # Adding this to pass the checks and avoiding creating global variables
+            x1 <- x2 <- u <- type <- y <- space <- NULL  
+
             check_packages(c("ggplot2", "viridis","gridExtra"), "plot_function()")
             
             N <- dim(Q)[1]
@@ -387,7 +400,12 @@ spacetime.operators <- function(mesh_space = NULL,
             return(p)
         }
     } else {
-        plot_covariances <- function(t.ind, s.ind) { 
+        plot_covariances <- function(t.ind, s.ind, t.shift = NULL) {
+            if(!is.null(t.shift)){
+                warning("t.shift is not used in this case.")
+            } 
+            # Adding this to pass the checks and avoiding creating global variables
+            x1 <- x2 <- u <- type <- y <- space <- NULL            
             check_packages(c("ggplot2", "viridis"), "plot_function()")
             N <- dim(Q)[1]
             

@@ -49,7 +49,7 @@ An object of type spacetimeobj.
 \description{
 \code{spacetime.operators} is used for computing a FEM approximation of a Gaussian
 random field defined as a solution to the SPDE
-\deqn{d u + \gamma(\kappa^2 + \rho\cdot\Nabla - \Delta)^\alpha u = \sigma dW_C.}
+\deqn{d u + \gamma(\kappa^2 + \rho\cdot\nabla - \Delta)^\alpha u = \sigma dW_C.}
 where C is a Whittle-Matern covariance operator with smoothness parameter
 \eqn{\beta} and range parameter \eqn{\kappa}
 }

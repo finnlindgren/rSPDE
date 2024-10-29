@@ -1787,7 +1787,7 @@ group_predict <- function(models, model_names = NULL, formula = NULL,
         cat("Generating samples...\n")
       }
 
-      tmp <<- post_samples[[model_names[[model_number]]]][[fold]] <- inlabru::generate(new_model, newdata = df_pred, formula = formula, n.samples = n_samples)
+      post_samples[[model_names[[model_number]]]][[fold]] <- inlabru::generate(new_model, newdata = df_pred, formula = formula, n.samples = n_samples)
 
       test_data[[fold]] <- models[[model_number]]$bru_info$lhoods[[1]]$response_data$BRU_response[test_indices[[fold]]]
 
