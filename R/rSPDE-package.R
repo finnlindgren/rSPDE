@@ -34,7 +34,7 @@
 #'
 "_PACKAGE"
 #' @import Matrix
-#' @importFrom stats rnorm approx quantile var dist
+#' @importFrom stats rnorm approx quantile var dist setNames cov
 #' @importFrom stats dnorm pnorm dbeta nobs deviance logLik
 #' @importFrom methods as
 #' @importFrom stats simulate lm logLik na.omit optim sd terms rt spline

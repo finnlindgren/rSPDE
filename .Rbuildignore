@@ -1,4 +1,5 @@
 ^README\.md
+^index\.md
 ^\.Rhistory
 ^.*\.Rproj$
 ^\.Rproj\.user$

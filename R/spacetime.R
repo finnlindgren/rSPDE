@@ -3,7 +3,7 @@
 #' 
 #' `spacetime.operators` is used for computing a FEM approximation of a Gaussian 
 #' random field defined as a solution to the SPDE
-#' \deqn{d u + \gamma(\kappa^2 + \rho\cdot\Nabla - \Delta)^\alpha u = \sigma dW_C.}
+#' \deqn{d u + \gamma(\kappa^2 + \rho\cdot\nabla - \Delta)^\alpha u = \sigma dW_C.}
 #'where C is a Whittle-Matern covariance operator with smoothness parameter 
 #'\eqn{\beta} and range parameter \eqn{\kappa}
 #' @param mesh_space Spatial mesh for FEM approximation
@@ -111,7 +111,9 @@ spacetime.operators <- function(mesh_space = NULL,
             warning("The graph object did not contain a mesh, one was created with h = 0.01. Use the build_mesh() method to replace this mesh with a new one.")
             graph$build_mesh(h = 0.01)
         }
-        graph$compute_fem()
+        if(is.null(graph$mesh$C)){
+            graph$compute_fem()
+        }
         C <- graph$mesh$C
         Ci <- Diagonal(1/rowSums(C),n=dim(C)[1])
         G <- graph$mesh$G
