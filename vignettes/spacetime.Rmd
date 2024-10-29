@@ -301,6 +301,66 @@ Let us see a summary of the fitted model:
 summary(res)
 ```
 
+
+Let us compare the estimated results with the true values:
+```{r}
+results <- data.frame(kappa = c(kappa, res$coeff$random_effects[1]), 
+                      sigma = c(sigma, res$coeff$random_effects[2]),
+                      gamma = c(gamma, res$coeff$random_effects[3]), 
+                      rho_1 = c(rho[1], res$coeff$random_effects[4]),
+                      rho_2 = c(rho[2], res$coeff$random_effects[5]),
+                      sigma.e = c(sigma.e, res$coeff$measurement_error),
+                      intercept = c(0, res$coeff$fixed_effects),
+                      row.names = c("True", "Estimate"))
+                      
+print(results)
+```
+
+Let us now use our `inlabru` implementation. We first define the model. To this end we need to create a mesh for the time object:
+
+```{r}
+mesh_time <- fmesher::fm_mesh_1d(t)
+```
+
+```{r}
+st_bru_field <- rspde.spacetime(mesh_space = mesh_2d,
+        mesh_time = mesh_time, alpha = alpha, beta = beta)
+```
+
+Let us now prepare the `data.frame` object:
+
+```{r}
+library(sp)
+df_bru <- data.frame(y = Y, coord_x = obs.loc$x, coord_y = obs.loc$y, time = obs.loc$t)
+```
+
+Now, the component:
+```{r}
+cmp <- y ~ 1 + field(list(space=cbind(coord_x, coord_y), 
+                time = time), model = st_bru_field)
+```
+
+We are now in a position to fit the model:
+
+```{r}
+bru_fit_field <- bru(cmp, data = df_bru)
+```
+
+Let us now compare the estimated results (the means of the parameters) with the true values:
+
+```{r}
+results <- data.frame(kappa = c(kappa, exp(bru_fit_field$summary.hyperpar$mean[2])), 
+                      sigma = c(sigma, exp(bru_fit_field$summary.hyperpar$mean[3])),
+                      gamma = c(gamma, exp(bru_fit_field$summary.hyperpar$mean[4])), 
+                      rho_1 = c(rho[1], bru_fit_field$summary.hyperpar$mean[5]),
+                      rho_2 = c(rho[2], bru_fit_field$summary.hyperpar$mean[6]),
+                      sigma.e = c(sigma.e, sqrt(1/bru_fit_field$summary.hyperpar$mean[1])),
+                      intercept = c(0, bru_fit_field$summary.fixed$mean),
+                      row.names = c("True", "Estimate"))
+                      
+print(results)
+```
+
 ## An example on a metric graph
 
 Finally, let us show an example on a metric graph. We use the following simple graph 

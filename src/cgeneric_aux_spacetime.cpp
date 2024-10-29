@@ -19,8 +19,7 @@ void compute_Q_dim2(
     inla_cgeneric_smat_tp** Gtlist,
     inla_cgeneric_smat_tp** Ctlist,
     inla_cgeneric_smat_tp** B0list,
-    inla_cgeneric_smat_tp*** M2list,
-    inla_cgeneric_smat_tp*** M2list2
+    inla_cgeneric_smat_tp*** M2list
 );
 
 } // extern "C"
@@ -111,7 +110,6 @@ void compute_Q_dim1(
     }
 }
 
-
 // Main function to compute Q for the 2D case (d = 2)
 void compute_Q_dim2(
     double kappa, double sigma, double gamma, double rho_1, double rho_2, int beta, int alpha,
@@ -119,34 +117,32 @@ void compute_Q_dim2(
     inla_cgeneric_smat_tp** Gtlist, 
     inla_cgeneric_smat_tp** Ctlist, 
     inla_cgeneric_smat_tp** B0list, 
-    inla_cgeneric_smat_tp*** M2list,
-    inla_cgeneric_smat_tp*** M2list2
+    inla_cgeneric_smat_tp*** M2list
 ) {
-    // Initialize Q with the first term using RowMajor storage
     SparseMatrixColMajor Q = make_L(beta, kappa, Gtlist) + 2 * gamma * make_L(beta + alpha, kappa, B0list);
 
-    for (int k = 0; k <= alpha; ++k) {
-        double gamma_sq_rho = gamma * gamma * nChoosek(alpha, k) * pow(rho_1, 2 * k);
+    // Add the main Ctlist term
+    Q += gamma * gamma * make_L(beta + 2 * alpha, kappa, Ctlist);
 
-        SparseMatrixColMajor Ct_sum = make_L(beta + 2 * (alpha - k), kappa, &Ctlist[k]);
+    if (alpha == 1) {
+        SparseMatrixColMajor tmp = rho_1 * rho_1 * make_L(beta, kappa, M2list[0]) +
+                                   rho_2 * rho_2 * make_L(beta, kappa, M2list[1]) +
+                                   2 * rho_1 * rho_2 * make_L(beta, kappa, M2list[2]);
 
-        Q += gamma_sq_rho * Ct_sum;
+        SparseMatrixColMajor tmp_transp = tmp.transpose();
+        
+        Q += 0.5 * gamma * gamma * (tmp + tmp_transp);
 
-        // Calculate the M2 terms for 2D (M2list and M2list2)
-        SparseMatrixColMajor M2x_term = make_L(beta + alpha - k, kappa, M2list[k]);
-        SparseMatrixColMajor M2y_term = make_L(beta + alpha - k, kappa, M2list2[k]);
+        // Calculate M2 term
+        SparseMatrixColMajor M2 = rho_1 * make_L(beta, kappa, M2list[3]) +
+                                  rho_2 * make_L(beta, kappa, M2list[4]);
 
-        // Add the M2x and M2y terms to Q
-        double factor = -0.5 * gamma * nChoosek(alpha, k) * (1 - pow(-1, k));
-
-        // Ensure that the storage orders match
-        SparseMatrixColMajor M2x_term_transpose = M2x_term.transpose();
-        SparseMatrixColMajor M2y_term_transpose = M2y_term.transpose();
-
-        Q += factor * pow(rho_1, k) * (M2x_term + M2x_term_transpose);
-        Q += factor * pow(rho_2, k) * (M2y_term + M2y_term_transpose);
+        SparseMatrixColMajor M2_transp = M2.transpose();
+        
+        Q -= gamma * (M2 + M2_transp);
     }
 
+    // Final scaling by sigma squared
     Q /= sigma * sigma;
 
     // Extract the values from Q into the result array

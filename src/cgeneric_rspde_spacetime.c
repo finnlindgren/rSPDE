@@ -5,8 +5,9 @@ double *inla_cgeneric_rspde_spacetime_model(inla_cgeneric_cmd_tp cmd, double *th
 
     double *ret = NULL;
     int k, i;
-    double lkappa, lsigma, lgamma, rho;
+    double lkappa, lsigma, lgamma, rho, rho2;
     double kappa, sigma, gamma;
+    double prior_rho2_mean;
 
     // Retrieve parameter values from `data`
     assert(!strcasecmp(data->ints[0]->name, "n"));
@@ -51,6 +52,10 @@ double *inla_cgeneric_rspde_spacetime_model(inla_cgeneric_cmd_tp cmd, double *th
     assert(!strcasecmp(data->doubles[3]->name, "prior.rho.mean"));
     double prior_rho_mean = data->doubles[3]->doubles[0];
 
+    if(d == 2){
+        prior_rho2_mean = data->doubles[3]->doubles[1];
+    }
+
     // Beta and Alpha
     assert(!strcasecmp(data->doubles[4]->name, "beta"));
     double beta = data->doubles[4]->doubles[0];
@@ -68,7 +73,15 @@ double *inla_cgeneric_rspde_spacetime_model(inla_cgeneric_cmd_tp cmd, double *th
     // Retrieve prior precision matrix
     assert(!strcasecmp(data->mats[0]->name, "prior.precision"));
     inla_cgeneric_mat_tp *prior_precision = data->mats[0];
-    assert(prior_precision->nrow == 4 && prior_precision->ncol == 4);
+
+    if (d == 2) {
+        assert(prior_precision->nrow == 5 && prior_precision->ncol == 5);
+    } else if (d == 1) {
+        assert(prior_precision->nrow == 4 && prior_precision->ncol == 4);
+    } else {
+        // Handle unexpected dimension cases if necessary
+        assert(0 && "Unsupported dimension for prior precision matrix");
+    }
 
     // Process list of matrices (Gtlist, Ctlist, B0list, M2list, M2list2)
     inla_cgeneric_smat_tp **Gtlist = malloc(n_Gtlist * sizeof(inla_cgeneric_smat_tp *));
@@ -119,47 +132,27 @@ double *inla_cgeneric_rspde_spacetime_model(inla_cgeneric_cmd_tp cmd, double *th
         }
     }
 
-    inla_cgeneric_smat_tp ***M2list2 = NULL;
-    if (n_M2list2 > 0) {
-        M2list2 = malloc(n_M2list2 * sizeof(inla_cgeneric_smat_tp **));
-        for (int i = 0; i < n_M2list2; i++) {
-            char length_name[20];
-            sprintf(length_name, "n_M2list2_%d", i + 1);
-
-            int n_M2list2_i = 0;
-            for (int j = 0; j < data->n_ints; j++) {
-                if (!strcasecmp(data->ints[j]->name, length_name)) {
-                    n_M2list2_i = data->ints[j]->ints[0];
-                    break;
-                }
-            }
-            assert(n_M2list2_i > 0);
-
-            M2list2[i] = malloc(n_M2list2_i * sizeof(inla_cgeneric_smat_tp *));
-            for (int j = 0; j < n_M2list2_i; j++) {
-                char element_name[30];
-                sprintf(element_name, "M2list2%d_%d", i + 1, j + 1);
-                assert(!strcasecmp(data->smats[smat_index]->name, element_name));
-                M2list2[i][j] = data->smats[smat_index++];
-            }
-        }
-    }
-
     if (theta) {
         lkappa = theta[0];
         lsigma = theta[1];
         lgamma = theta[2];
         if(drift == 1){
             rho = theta[3];  // No exponential transformation for rho
+            if(d == 2){
+                rho2 = theta[4];
+            } else{
+                rho2 = 0.0;
+            }
         } else{
             rho = 0.0;
+            rho2 = 0.0;
         }
 
         kappa = exp(lkappa);
         sigma = exp(lsigma);
         gamma = exp(lgamma);
     } else {   
-        lkappa = lsigma = lgamma = kappa = sigma = gamma = rho = NAN;
+        lkappa = lsigma = lgamma = kappa = sigma = gamma = rho = rho2 = NAN;
     }
 
     switch (cmd) {
@@ -195,7 +188,10 @@ double *inla_cgeneric_rspde_spacetime_model(inla_cgeneric_cmd_tp cmd, double *th
             if(d == 1){
                 compute_Q_dim1(kappa, sigma, gamma, rho, beta, alpha, &ret[k], Gtlist, 
                         Ctlist, B0list, M2list);
-            } 
+            } else if(d == 2){
+                compute_Q_dim2(kappa, sigma, gamma, rho, rho2, beta, alpha, &ret[k], Gtlist, 
+                        Ctlist, B0list, M2list);
+            }
 
             break;
 
@@ -209,8 +205,13 @@ double *inla_cgeneric_rspde_spacetime_model(inla_cgeneric_cmd_tp cmd, double *th
         case INLA_CGENERIC_INITIAL:
             {
                 if(drift == 1){
-                    ret = Calloc(5, double);
-                    ret[0] = 4;  // Number of hyperparameters
+                    if(d == 1){
+                        ret = Calloc(5, double);
+                        ret[0] = 4;  // Number of hyperparameters
+                    } else{
+                        ret = Calloc(6, double);
+                        ret[0] = 5;
+                    }
                 } else{
                     ret = Calloc(4, double);                    
                     ret[0] = 3;
@@ -221,6 +222,9 @@ double *inla_cgeneric_rspde_spacetime_model(inla_cgeneric_cmd_tp cmd, double *th
                 ret[3] = log(prior_gamma_mean);        
                 if(drift == 1){
                     ret[4] = prior_rho_mean;                     
+                    if(d == 2){
+                        ret[5] = prior_rho2_mean;
+                    } 
                 }           
                 break;
             }
@@ -236,9 +240,15 @@ double *inla_cgeneric_rspde_spacetime_model(inla_cgeneric_cmd_tp cmd, double *th
             ret[0] = 0.0;
             
             if(drift == 1){
-                double mean_vector[4] = {log(prior_kappa_mean), log(prior_sigma_mean), log(prior_gamma_mean), prior_rho_mean};
-                double theta_vector[4] = {lkappa, lsigma, lgamma, rho};
-                ret[0] = logmultnormvdens(4, mean_vector, prior_precision->x, theta_vector);
+                if(d == 1){
+                    double mean_vector[4] = {log(prior_kappa_mean), log(prior_sigma_mean), log(prior_gamma_mean), prior_rho_mean};
+                    double theta_vector[4] = {lkappa, lsigma, lgamma, rho};
+                    ret[0] = logmultnormvdens(4, mean_vector, prior_precision->x, theta_vector);
+                } else{
+                    double mean_vector[5] = {log(prior_kappa_mean), log(prior_sigma_mean), log(prior_gamma_mean), prior_rho_mean, prior_rho2_mean};
+                    double theta_vector[5] = {lkappa, lsigma, lgamma, rho, rho2};
+                    ret[0] = logmultnormvdens(5, mean_vector, prior_precision->x, theta_vector);
+                }
             } else{
                 double mean_vector[3] = {log(prior_kappa_mean), log(prior_sigma_mean), log(prior_gamma_mean)};
                 double theta_vector[3] = {lkappa, lsigma, lgamma};
