@@ -1,11 +1,12 @@
 #' @noRd
-set_prior <- function(prior, default_mean, default_precision = 0.1) {
+#' @noRd
+set_prior <- function(prior, default_mean, default_precision, p = 1) {
   # Validate default parameters
-  if (!is.numeric(default_mean) || length(default_mean) != 1) {
-    stop("default_mean must be a single numeric value.")
+  if (!is.numeric(default_mean) || length(default_mean) != p) {
+    stop(paste("default_mean must be a numeric vector of length equal to",p,"."))
   }
-  if (!is.numeric(default_precision) || length(default_precision) != 1 || default_precision <= 0) {
-    stop("default_precision must be a positive numeric scalar.")
+  if (!is.numeric(default_precision) || length(default_precision) != p || any(default_precision <= 0)) {
+    stop(paste("default_precision must be a positive numeric vector of length equal to",p,"."))
   }
 
   # Return default prior if none is provided
@@ -23,12 +24,8 @@ set_prior <- function(prior, default_mean, default_precision = 0.1) {
 
   # Validate and set 'mean'
   if (!is.null(prior$mean)) {
-    if (!is.numeric(prior$mean)) {
-      stop("'mean' must be numeric.")
-    }
-    if (length(prior$mean) > 1) {
-      warning("Vector provided for 'mean'; only the first element will be used.")
-      prior$mean <- prior$mean[1]
+    if (!is.numeric(prior$mean) || length(prior$mean) != p) {
+      stop(sprintf("'mean' must be a numeric vector of length %d.", p))
     }
   } else {
     prior$mean <- default_mean  # Use default mean if not provided
@@ -36,16 +33,13 @@ set_prior <- function(prior, default_mean, default_precision = 0.1) {
 
   # Validate and set 'precision'
   if (!is.null(prior$precision)) {
-    if (!is.numeric(prior$precision) || any(prior$precision <= 0)) {
-      stop("'precision' must contain positive numeric values.")
-    }
-    if (length(prior$precision) > 1) {
-      warning("Vector provided for 'precision'; only the first element will be used.")
-      prior$precision <- prior$precision[1]
+    if (!is.numeric(prior$precision) || length(prior$precision) != p || any(prior$precision <= 0)) {
+      stop(sprintf("'precision' must be a positive numeric vector of length %d.", p))
     }
   } else {
     prior$precision <- default_precision  # Use default precision if not provided
   }
+
   return(prior)
 }
 
@@ -81,15 +75,15 @@ set_prior <- function(prior, default_mean, default_precision = 0.1) {
 #' default values will be used.
 #' @param prior.rho A list specifying the prior for the drift coefficient \(\rho\). 
 #' This list may contain two elements: `mean` and/or `precision`, both of which must 
-#' be numeric scalars. The precision applies directly to `rho` without log transformation. 
+#' be numeric scalars if dimension is one, and numeric vectors of length 2 if dimension is 2. 
+#' The precision applies directly to `rho` without log transformation. 
 #' If `NULL`, default values will be used. Will not be used if `drift = FALSE`.
 #' @param prior.gamma A list specifying the prior for the weight \(\gamma\) in the SPDE 
 #' operator. This list may contain two elements: `mean` and/or `precision`, both of which 
 #' must be numeric scalars. The precision refers to the prior on `log(gamma)`. If `NULL`, 
 #' default values will be used.
 #' @param prior.precision A precision matrix for `log(kappa), log(sigma), log(gamma), rho`. This matrix replaces the precision 
-#' element from `prior.kappa`, `prior.sigma`, `prior.gamma`, and `prior.rho` respectively. If `NULL`, a diagonal precision matrix
-#' with default values will be used.
+#' element from `prior.kappa`, `prior.sigma`, `prior.gamma`, and `prior.rho` respectively. For dimension 1 `prior.precision` must be a 4x4 matrix. For dimension 2, rho is a vector of length 2, so in this case `prior.precision` must be a 5x5 matrix. If `NULL`, a diagonal precision matrix with default values will be used.
 #' @param shared_lib String specifying which shared library to use for the Cgeneric 
 #' implementation. Options are "detect", "INLA", or "rSPDE". You may also specify the 
 #' direct path to a .so (or .dll) file.
@@ -161,26 +155,48 @@ rspde.spacetime <- function(mesh_space = NULL,
     kappa = prior.kappa$mean,
     sigma = prior.sigma$mean,
     gamma = prior.gamma$mean,
-    rho = if (drift) prior.rho$mean else 0,
+    rho = prior.rho$mean,
     alpha = alpha,
     beta = beta
   )
 
-  prior.kappa <- set_prior(prior.kappa, op$kappa)
-  prior.sigma <- set_prior(prior.sigma, op$sigma)
-  prior.gamma <- set_prior(prior.gamma, op$gamma)
-  prior.rho <- set_prior(prior.rho, op$rho)
+  default_precision <- 0.1
+  default_precision_rho <- if(op$d == 1) 0.1 else c(0.1, 0.1)
 
-  # Set default 4x4 precision matrix if prior.precision is NULL
+  prior.kappa <- set_prior(prior.kappa, op$kappa, default_precision, p = 1)
+  prior.sigma <- set_prior(prior.sigma, op$sigma, default_precision, p = 1)
+  prior.gamma <- set_prior(prior.gamma, op$gamma, default_precision, p = 1)
+  prior.rho <- set_prior(prior.rho, op$rho, default_precision_rho, p = op$d)
+
+  # Set default precision matrix if prior.precision is NULL
   if (is.null(prior.precision)) {
-    prior.precision <- diag(c(
-      prior.kappa$precision, 
-      prior.sigma$precision, 
-      prior.gamma$precision, 
-      prior.rho$precision
-    ), 4)
-  } else if (!is.matrix(prior.precision) || !all(dim(prior.precision) == c(4, 4))) {
-    stop("prior.precision must be a 4x4 matrix.")
+    if (drift) {
+      # Include prior.rho$precision if drift is TRUE
+      prior.precision <- diag(c(
+        prior.kappa$precision, 
+        prior.sigma$precision, 
+        prior.gamma$precision, 
+        prior.rho$precision
+      ))
+    } else {
+      # Exclude prior.rho$precision if drift is FALSE
+      prior.precision <- diag(c(
+        prior.kappa$precision, 
+        prior.sigma$precision, 
+        prior.gamma$precision
+      ))
+    }
+  } else {
+    # Check matrix dimensions based on op$d and drift
+    expected_dim <- if (op$d == 1) {
+      if (drift) c(4, 4) else c(3, 3)
+    } else if (op$d == 2) {
+      if (drift) c(5, 5) else c(3, 3)
+    } else stop("dimension must be 1 or 2.")
+
+    if (!is.matrix(prior.precision) || !all(dim(prior.precision) == expected_dim)) {
+      stop(sprintf("prior.precision must be a %dx%d matrix.", expected_dim[1], expected_dim[2]))
+    }
   }
 
   rspde_lib <- get_shared_library(shared_lib)
@@ -231,19 +247,8 @@ rspde.spacetime <- function(mesh_space = NULL,
         # Add each second-level element with a unique name
         setNames(op$M2list[[i]], paste0("M2list", i, "_", seq_along(op$M2list[[i]])))
       )
-    }), recursive = FALSE),
-    
-    # Flattened two-level M2list2, only if it has elements
-    if (length(op$M2list2) > 0) unlist(lapply(seq_along(op$M2list2), function(i) {
-      c(
-        # Add the length of each first-level M2list2 element
-        setNames(list(length(op$M2list2[[i]])), paste0("n_M2list2_", i)),
-        
-        # Add each second-level element with a unique name
-        setNames(op$M2list2[[i]], paste0("M2list2", i, "_", seq_along(op$M2list2[[i]])))
-      )
     }), recursive = FALSE)
-  )
+    )
 
   model <- do.call(INLA::inla.cgeneric.define, list_args)
 

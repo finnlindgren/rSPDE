@@ -180,7 +180,13 @@ spacetime.operators <- function(mesh_space = NULL,
     }
     
     if(is.null(rho)){
-        rho <- 0
+        if(d == 1){
+            rho <- 0
+        } else if(d == 2){
+            rho <- c(0,0)
+        } else{
+            stop("Only supported for 1d and 2d domains.")
+        }
     } else {
         if(has_graph) {
             rho <- rspde_check_user_input(rho, "rho", dim = 1) 

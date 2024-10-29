@@ -53,7 +53,8 @@ default values will be used.}
 
 \item{prior.rho}{A list specifying the prior for the drift coefficient \(\rho\).
 This list may contain two elements: \code{mean} and/or \code{precision}, both of which must
-be numeric scalars. The precision applies directly to \code{rho} without log transformation.
+be numeric scalars if dimension is one, and numeric vectors of length 2 if dimension is 2.
+The precision applies directly to \code{rho} without log transformation.
 If \code{NULL}, default values will be used. Will not be used if \code{drift = FALSE}.}
 
 \item{prior.gamma}{A list specifying the prior for the weight \(\gamma\) in the SPDE
@@ -62,8 +63,7 @@ must be numeric scalars. The precision refers to the prior on \code{log(gamma)}.
 default values will be used.}
 
 \item{prior.precision}{A precision matrix for \verb{log(kappa), log(sigma), log(gamma), rho}. This matrix replaces the precision
-element from \code{prior.kappa}, \code{prior.sigma}, \code{prior.gamma}, and \code{prior.rho} respectively. If \code{NULL}, a diagonal precision matrix
-with default values will be used.}
+element from \code{prior.kappa}, \code{prior.sigma}, \code{prior.gamma}, and \code{prior.rho} respectively. For dimension 1 \code{prior.precision} must be a 4x4 matrix. For dimension 2, rho is a vector of length 2, so in this case \code{prior.precision} must be a 5x5 matrix. If \code{NULL}, a diagonal precision matrix with default values will be used.}
 
 \item{shared_lib}{String specifying which shared library to use for the Cgeneric
 implementation. Options are "detect", "INLA", or "rSPDE". You may also specify the
