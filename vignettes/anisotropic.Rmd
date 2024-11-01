@@ -1,12 +1,12 @@
 ---
-    title: "Aniotropic models"
+title: "Aniotropic models"
 author: "David Bolin and Alexandre B. Simas"
 date: "Created: 2024-10-23. Last modified: `r Sys.Date()`."
 output: rmarkdown::html_vignette
 vignette: >
     %\VignetteIndexEntry{Anisotropic models}
-%\VignetteEngine{knitr::rmarkdown}
-%\VignetteEncoding{UTF-8}
+    %\VignetteEngine{knitr::rmarkdown}
+    %\VignetteEncoding{UTF-8}
 ---
     
 ```{r setup, include = FALSE}
@@ -53,7 +53,7 @@ library(gridExtra)
 library(viridis)
 ```
 We start by creating a region of interest and a spatial mesh using the `fmesher` package:
-    ```{r}
+```{r}
 library(fmesher)
 n_loc <- 2000
 loc_2d_mesh <- matrix(runif(n_loc * 2), n_loc, 2)
@@ -64,6 +64,7 @@ mesh_2d <- fm_mesh_2d(
 )
 plot(mesh_2d, main = "")
 ```
+
 We now specify the model using the `matern2d.operators` function. 
 ```{r}
 sigma <- 1
@@ -98,6 +99,7 @@ cov.df <- data.frame(x1 = proj$lattice$loc[,1],
                      u = c(u.mesh))
 ggplot(cov.df, aes(x = x1, y = x2, fill = u)) + geom_raster() + xlim(0,1) + ylim(0,1) + scale_fill_viridis()
 ```
+
 Let us now simulate some data based on this simulated field.
 
 ```{r}
