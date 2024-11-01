@@ -401,6 +401,85 @@ update.CBrSPDEobj <- function(object, user_nu = NULL, user_alpha = NULL,
   return(new_object)
 }
 
+#' @name update.CBrSPDEobj2d
+#' @title Update parameters of CBrSPDEobj2d objects
+#' @description Function to change the parameters of a CBrSPDEobj object
+#' @param object The covariance-based rational SPDE approximation,
+#' computed using [matern2d.operators()]
+#' @param user_hx If non-null, update the hx parameter.
+#' @param user_hy If non-null, update the hy parameter.
+#' @param user_hxy If non-null, update the hxy parameter.
+#' @param user_sigma If non-null, update the standard deviation of
+#' the covariance function. 
+#' @param user_nu If non-null, update the shape parameter of the
+#' covariance function. Will be used if parameterization is 'matern'.
+#' @param user_m If non-null, update the order of the rational
+#' approximation, which needs to be a positive integer.
+#' @param mesh An `fmesher` mesh. 
+#' @param type_rational_approximation Which type of rational
+#' approximation should be used? The current types are "chebfun",
+#' "brasil" or "chebfunLB".
+#' @param ... Currently not used.
+#' @return It returns an object of class "CBrSPDEobj2d. 
+#' @method update CBrSPDEobj2d
+#' @seealso [simulate.CBrSPDEobj2d()], [matern2d.operators()]
+#' @export
+#' @examples
+#' library(fmesher)
+#' n_loc <- 2000
+#' loc_2d_mesh <- matrix(runif(n_loc * 2), n_loc, 2)
+#' mesh_2d <- fm_mesh_2d(loc = loc_2d_mesh, cutoff = 0.03, max.edge = c(0.1, 0.5))
+#' op <- matern2d.operators(mesh = mesh_2d)
+#' op <- update(op, nu = 0.5)
+update.CBrSPDEobj2d <- function(object, 
+                                user_hx = NULL,
+                                user_hy = NULL,
+                                user_hxy = NULL,
+                                user_sigma = NULL,
+                                user_nu = NULL, 
+                                user_m = NULL,
+                                ...) {
+    new_object <- object
+    
+    
+    if (!is.null(user_nu)) {
+        new_object$nu <- rspde_check_user_input(user_nu, "nu", 0)
+    }
+     
+    if (!is.null(user_hx)) {
+        new_object$hx <- rspde_check_user_input(user_hx, "hx", 0)
+    }
+    if (!is.null(user_hy)) {
+        new_object$hy <- rspde_check_user_input(user_hy, "hy", 0)
+    }
+    if (!is.null(user_hxy)) {
+        new_object$hxy <- rspde_check_user_input(user_hxy, "hxy", -1)
+        if(new_object$hxy > 1) {
+            stop("hxy must be in (-1,1)")
+        }
+    }
+            
+    if (!is.null(user_sigma)) {
+        new_object$sigma <- rspde_check_user_input(user_sigma, "sigma", 0)
+    }
+            
+
+    if (!is.null(user_m)) {
+        new_object$m <- as.integer(rspde_check_user_input(user_m, "m", 0))
+    }
+        
+    new_object <- matern2d.operators(hx = new_object$hx,
+                                     hy = new_object$hy,
+                                     hxy = new_object$hxy,
+                                     nu = new_object$nu,
+                                     sigma = new_object$sigma,
+                                     fem = new_object$fem,
+                                     m = new_object$m,
+                                     mesh = new_object$mesh)
+       
+    return(new_object)
+}
+
 
 #' @name update.rSPDEobj
 #' @title Update parameters of rSPDEobj objects
@@ -830,6 +909,79 @@ simulate.CBrSPDEobj <- function(object, nsim = 1,
     X <- Abar %*% X
   }
   return(X)
+}
+
+#' @name simulate.CBrSPDEobj2d
+#' @title Simulation of a fractional SPDE using the
+#' covariance-based rational SPDE approximation
+#' @description The function samples a Gaussian random field based using the
+#' covariance-based rational SPDE approximation.
+#' @param object The covariance-based rational SPDE approximation,
+#' computed using [matern2d.operators()]
+#' @param nsim The number of simulations.
+#' @param seed An object specifying if and how the random number generator should be initialized (‘seeded’).
+#' @param user_hx If non-null, update the hx parameter.
+#' @param user_hy If non-null, update the hy parameter.
+#' @param user_hxy If non-null, update the hxy parameter.
+#' @param user_sigma If non-null, update the standard deviation of
+#' the covariance function.
+#' @param user_nu If non-null, update the shape parameter of the
+#' covariance function.
+#' @param user_m If non-null, update the order of the rational
+#' approximation, which needs to be a positive integer.
+#' @param ... Currently not used.
+#' @return A matrix with the `n` samples as columns.
+#' @method simulate CBrSPDEobj2d
+#' @export
+#' @examples
+#' library(fmesher)
+#' n_loc <- 2000
+#' loc_2d_mesh <- matrix(runif(n_loc * 2), n_loc, 2)
+#' mesh_2d <- fm_mesh_2d(loc = loc_2d_mesh, cutoff = 0.03, max.edge = c(0.1, 0.5))
+#' op <- matern2d.operators(mesh = mesh_2d, sigma = 1, nu = 1, hx = 0.1, hy = 0.1, hxy = 0)
+#' u <- simulate(op)
+simulate.CBrSPDEobj2d <- function(object, 
+                                  nsim = 1,
+                                  seed = NULL,
+                                  user_nu = NULL,
+                                  user_hx = NULL,
+                                  user_hy = NULL,
+                                  user_hxy = NULL,
+                                  user_sigma = NULL,
+                                  user_m = NULL,
+                                  ...) {
+    if (!is.null(seed)) {
+        set.seed(seed)
+    }
+    
+    user_nu <- ifelse(is.null(user_nu), object$nu, user_nu)
+    alpha <- user_nu + 1
+    
+    
+    object <- update.CBrSPDEobj2d(object = object,
+                                  user_nu = user_nu,
+                                  user_hx = user_hx,
+                                  user_hy = user_hy,
+                                  user_hxy = user_hxy,
+                                  user_sigma = user_sigma,
+                                  user_m = user_m)
+    
+    Q <- object$Q
+    sizeQ <- dim(Q)[1]
+    
+    Z <- rnorm(sizeQ * nsim)
+    dim(Z) <- c(sizeQ, nsim)
+    
+    LQ <- chol(forceSymmetric(Q))
+    X <- solve(LQ, Z)
+    
+    if(object$alpha %% 1 != 0) {
+        A <- Diagonal(dim(Q)[1] / (object$m + 1))
+        Abar <- kronecker(matrix(1, 1, object$m + 1), A)
+        X <- Abar %*% X
+    }
+    
+    return(X)
 }
 
 
@@ -1953,6 +2105,132 @@ predict.CBrSPDEobj <- function(object, A, Aprd, Y, sigma.e, mu = 0,
 }
 
 
+#' @name predict.CBrSPDEobj2d
+#' @title Prediction of an anisotropic Whittle-Matern field
+#' @description The function is used for computing kriging predictions based
+#' on data \eqn{Y_i = u(s_i) + \epsilon_i}, where \eqn{\epsilon}{\epsilon}
+#' is mean-zero Gaussian measurement noise and \eqn{u(s)}{u(s)} is defined by
+#' a SPDE as described in [matern2d.operators()].
+#' @param object The covariance-based rational SPDE approximation,
+#' computed using [matern2d.operators()]
+#' @param A A matrix linking the measurement locations to the basis of the FEM
+#' approximation of the latent model.
+#' @param Aprd A matrix linking the prediction locations to the basis of the
+#' FEM approximation of the latent model.
+#' @param Y A vector with the observed data, can also be a matrix where the
+#' columns are observations
+#' of independent replicates of \eqn{u}.
+#' @param sigma.e The standard deviation of the Gaussian measurement noise.
+#' Put to zero if the model does not have measurement noise.
+#' @param mu Expectation vector of the latent field (default = 0).
+#' @param compute.variances Set to also TRUE to compute the kriging variances.
+#' @param posterior_samples If `TRUE`, posterior samples will be returned.
+#' @param n_samples Number of samples to be returned. Will only be used if `sampling` is `TRUE`.
+#' @param only_latent Should the posterior samples be only given to the laten model?
+#' @param ... further arguments passed to or from other methods.
+#' @return A list with elements
+#' \item{mean }{The kriging predictor (the posterior mean of u|Y).}
+#' \item{variance }{The posterior variances (if computed).}
+#' @export
+#' @method predict CBrSPDEobj2d
+#' @examples
+#'  n_loc <- 2000
+#'  loc_2d_mesh <- matrix(runif(n_loc * 2), n_loc, 2)
+#'  mesh_2d <- fm_mesh_2d(loc = loc_2d_mesh, cutoff = 0.01, max.edge = c(0.1, 0.5))
+#'  op <- matern2d.operators(hx = 0.08, hy = 0.08, hxy = 0.5, nu = 0.5, 
+#'  sigma = 1, mesh = mesh_2d)
+#'  u <- simulate(op)
+#'  n.obs <- 2000
+#'  obs.loc <- cbind(runif(n.obs),runif(n.obs))
+#'  A <- fm_basis(mesh_2d,obs.loc)
+#'  sigma.e <- 0.1
+#'  Y <- as.vector(A%*%u + sigma.e*rnorm(n.obs))
+#'  A <- op$make_A(obs.loc)
+#'  Aprd <- op$make_A(proj$lattice$loc)
+#'  u.krig <- predict(op, A = A, Aprd = Aprd, Y = Y, sigma.e = sigma.e)
+predict.CBrSPDEobj2d <- function(object, A, Aprd, Y, sigma.e, mu = 0,
+                                 compute.variances = FALSE, posterior_samples = FALSE,
+                                 n_samples = 100, only_latent = FALSE,
+                                 ...) {
+    Y <- as.matrix(Y)
+    if (dim(Y)[1] != dim(A)[1]) {
+        stop("the dimensions of A does not match the number of observations")
+    }
+    
+    n <- dim(Y)[1]
+    out <- list()
+    
+    no_nugget <- FALSE
+    
+    if (length(sigma.e) == 1) {
+        if (sigma.e == 0) {
+            no_nugget <- TRUE
+        } else {
+            Q.e <- Diagonal(n) / sigma.e^2
+        }
+    } else {
+        if (length(sigma.e) != n) {
+            stop("the length of sigma.e does not match the number of observations")
+        }
+        Q.e <- Diagonal(length(sigma.e), 1 / sigma.e^2)
+    }
+    
+    
+    if (!no_nugget) {
+        ## construct Q
+        Q <- object$Q
+        ## compute Q_x|y
+        Q_xgiveny <- (t(A) %*% Q.e %*% A) + Q
+        ## construct mu_x|y
+        mu_xgiveny <- t(A) %*% Q.e %*% Y
+        
+        R <- Matrix::Cholesky(forceSymmetric(Q_xgiveny))
+        mu_xgiveny <- solve(R, mu_xgiveny, system = "A")
+        
+        mu_xgiveny <- mu + mu_xgiveny
+        out$mean <- Aprd %*% mu_xgiveny
+        
+        if (compute.variances) {
+            out$variance <- diag(Aprd %*% solve(Q_xgiveny, t(Aprd)))
+        }
+    } else {
+        Q <- object$Q
+        
+        QiAt <- solve(Q, t(A))
+        AQiA <- A %*% QiAt
+        xhat <- solve(Q, t(A) %*% solve(AQiA, Y))
+        
+        out$mean <- as.vector(Aprd %*% xhat)
+        if (compute.variances) {
+            M <- Q - QiAt %*% solve(AQiA, t(QiAt))
+            out$variance <- diag(Aprd %*% M %*% t(Aprd))
+        }
+    }
+    
+    
+    if (posterior_samples) {
+        if (!no_nugget) {
+            post_cov <- Aprd %*% solve(Q_xgiveny, t(Aprd))
+        } else {
+            M <- Q - QiAt %*% solve(AQiA, t(QiAt))
+            post_cov <- Aprd %*% M %*% t(Aprd)
+        }
+        Y_tmp <- as.matrix(Y)
+        mean_tmp <- as.matrix(out$mean)
+        out$samples <- lapply(1:ncol(Y_tmp), function(i) {
+            Z <- rnorm(dim(post_cov)[1] * n_samples)
+            dim(Z) <- c(dim(post_cov)[1], n_samples)
+            LQ <- chol(forceSymmetric(post_cov))
+            X <- LQ %*% Z
+            X <- X + mean_tmp[, i]
+            if (!only_latent) {
+                X <- X + matrix(rnorm(n_samples * dim(Aprd)[1], sd = sigma.e), nrow = dim(Aprd)[1])
+            }
+            return(X)
+        })
+    }
+    return(out)
+}
 
 #' @rdname precision.CBrSPDEobj
 #' @export
@@ -2025,6 +2303,53 @@ precision.CBrSPDEobj <- function(object,
 
   Q <- object$Q
   return(Q)
+}
+
+#' @name precision.CBrSPDEobj2d
+#' @title Get the precision matrix of CBrSPDEobj2d objects
+#' @description Function to get the precision matrix of a CBrSPDEobj2d object
+#' @param object The covariance-based rational SPDE approximation,
+#' computed using [matern2d.operators()]
+#' @param user_nu If non-null, update the shape parameter of the
+#' covariance function.
+#' @param user_hx If non-null, update the hx parameter. 
+#' @param user_hy If non-null, update the hy parameter. 
+#' @param user_hxy If non-null, update the hxy parameter. 
+#' @param user_sigma If non-null, update the standard deviation of
+#' the covariance function.
+#' @param user_m If non-null, update the order of the rational approximation,
+#' which needs to be a positive integer.
+#' @param ... Currently not used.
+#' @return The precision matrix.
+#' @method precision CBrSPDEobj
+#' @seealso [simulate.CBrSPDEobj2d()], [matern2d.operators()]
+#' @export
+#' @examples
+#' n_loc <- 2000
+#' loc_2d_mesh <- matrix(runif(n_loc * 2), n_loc, 2)
+#' mesh_2d <- fm_mesh_2d(loc = loc_2d_mesh, cutoff = 0.03, max.edge = c(0.1, 0.5))
+#' op <- matern2d.operators(mesh = mesh_2d)
+#' Q <- precision(op)
+precision.CBrSPDEobj2d <- function(object,
+                                 user_nu = NULL,
+                                 user_hx = NULL,
+                                 user_hy = NULL,
+                                 user_hxy = NULL,
+                                 user_sigma = NULL,
+                                 user_m = NULL,
+                                 ...) {
+    object <- update.CBrSPDEobj2d(
+        object = object,
+        user_nu = user_nu,
+        user_hx = user_hx,
+        user_hy = user_hy,
+        user_hxy = user_hxy,
+        user_sigma = user_sigma,
+        user_m = user_m
+    )
+    
+    Q <- object$Q
+    return(Q)
 }
 
 
@@ -2579,6 +2904,93 @@ aux2_lme_rSPDE.matern.loglike <- function(object, y, X_cov, repl, A_list, sigma_
   return(as.double(l))
 }
 
+
+#' @noRd
+aux_lme_CBrSPDE.matern2d.loglike <- function(object, y, X_cov, repl, A_list, sigma_e, beta_cov) {
+    l_tmp <- tryCatch(
+        aux2_lme_rSPDE.matern2d.loglike(
+            object = object,
+            y = y, X_cov = X_cov, repl = repl, A_list = A_list,
+            sigma_e = sigma_e, beta_cov = beta_cov
+        ),
+        error = function(e) {
+            return(NULL)
+        }
+    )
+    if (is.null(l_tmp)) {
+        return(-10^100)
+    }
+    return(l_tmp)
+}
+
+
+
+#' @noRd
+aux2_lme_rSPDE.matern2d.loglike <- function(object, y, X_cov, repl, A_list, sigma_e, beta_cov) {
+        m <- object$m
+        
+        Q <- object$Q
+        
+        # R <- tryCatch(Matrix::chol(Matrix::forceSymmetric(Q)), error=function(e){return(NULL)})
+        R <- Matrix::Cholesky(Q)
+        
+        prior.ld <- c(determinant(R, logarithm = TRUE, sqrt = TRUE)$modulus)
+        
+        repl_val <- unique(repl)
+        
+        l <- 0
+        
+        for (i in repl_val) {
+            ind_tmp <- (repl %in% i)
+            y_tmp <- y[ind_tmp]
+            
+            if (ncol(X_cov) == 0) {
+                X_cov_tmp <- 0
+            } else {
+                X_cov_tmp <- X_cov[ind_tmp, , drop = FALSE]
+            }
+            
+            na_obs <- is.na(y_tmp)
+            
+            y_ <- y_tmp[!na_obs]
+            
+            # y_ <- y_list[[as.character(i)]]
+            n.o <- length(y_)
+            A_tmp <- A_list[[as.character(i)]]
+            Q.p <- Q + t(A_tmp) %*% A_tmp / sigma_e^2
+            # R.p <- tryCatch(Matrix::chol(Q.p), error=function(e){return(NULL)})
+            # if(is.null(R.p)){
+            #   return(-10^100)
+            # }
+            R.p <- Matrix::Cholesky(Q.p)
+            
+            posterior.ld <- c(determinant(R.p, logarithm = TRUE, sqrt = TRUE)$modulus)
+            
+            # l <- l + sum(log(diag(R))) - sum(log(diag(R.p))) - n.o*log(sigma_e)
+            
+            l <- l + prior.ld - posterior.ld - n.o * log(sigma_e)
+            
+            v <- y_
+            
+            # if(has_cov){
+            if (ncol(X_cov) > 0) {
+                X_cov_tmp <- X_cov_tmp[!na_obs, , drop = FALSE]
+                # X_cov_tmp <- X_cov_list[[as.character(i)]]
+                v <- v - X_cov_tmp %*% beta_cov
+            }
+            
+            # mu.p <- solve(Q.p,as.vector(t(A_tmp) %*% v / sigma_e^2))
+            mu.p <- solve(R.p, as.vector(t(A_tmp) %*% v / sigma_e^2), system = "A")
+            
+            v <- v - A_tmp %*% mu.p
+            
+            l <- l - 0.5 * (t(mu.p) %*% Q %*% mu.p + t(v) %*% v / sigma_e^2) -
+                0.5 * n.o * log(2 * pi)
+        }
+        
+        return(as.double(l))
+    }
+
 #' @noRd
 
 aux_lme_rSPDE.matern.loglike <- function(object, y, X_cov, repl, A_list, sigma_e, beta_cov) {
@@ -2597,3 +3009,4 @@ aux_lme_rSPDE.matern.loglike <- function(object, y, X_cov, repl, A_list, sigma_e
   }
   return(l_tmp)
 }
+
