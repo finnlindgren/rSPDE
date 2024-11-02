@@ -1445,6 +1445,8 @@ rspde.make.index <- function(name, n.spde = NULL, n.group = 1,
 #' @export
 
 graph_data_rspde <- function(graph_rspde, name = "field", 
+                             spacetime = FALSE,
+                             time_col = NULL,
                              repl = NULL, 
                              repl_col = NULL,
                              group = NULL,
@@ -1461,6 +1463,15 @@ graph_data_rspde <- function(graph_rspde, name = "field",
   nu <- graph_rspde$nu
 
   graph_tmp <- graph_rspde$mesh
+
+  if(spacetime){
+    if(is.null(time_col)){
+      stop("time_col must be provided if spacetime is TRUE.")
+    }
+    if(!(time_col %in% names(graph_tmp$.__enclos_env__$private$data))){
+      stop("time_col must be a column in the data.")
+    }
+  }
 
   if(!is.null(repl_col)){
     if(!(repl_col %in% names(graph_tmp$.__enclos_env__$private$data))){
@@ -1558,20 +1569,20 @@ graph_data_rspde <- function(graph_rspde, name = "field",
   }
 
   if (!is.null(loc_name)) {
-    ret[["data"]][[loc_name]] <- cbind(
-      ret[["data"]][[".edge_number"]],
-      ret[["data"]][[".distance_on_edge"]]
-    )
-  }
-
-
-  if (!inherits(ret[["data"]], "metric_graph_data")) {
-    class(ret[["data"]]) <- c("metric_graph_data", class(ret))
-  }
-
-
-  if(!is.null(graph_rspde$rspde.order)){
-    ret[["index"]] <- rspde.make.index(mesh = graph_tmp, n.group = n.group, n.repl = n.repl, nu = nu, dim = 1, rspde.order = rspde.order, name = name)
+    if(!spacetime){
+      ret[["index"]][[loc_name]] <- cbind(
+        ret[["data"]][[".edge_number"]],
+        ret[["data"]][[".distance_on_edge"]]
+      )
+    } else{
+      ret[["index"]] <- list(
+        space = cbind(
+        ret[["data"]][[".edge_number"]],
+        ret[["data"]][[".distance_on_edge"]]
+      ),
+      time = ret[["data"]][[time_col]]
+      )
+    }
   }
 
   ret[["repl"]] <- repl_vec
@@ -1609,6 +1620,10 @@ graph_data_rspde <- function(graph_rspde, name = "field",
     }
   }
 
+  ret[["data"]] <- as.data.frame(ret[["data"]])
+  if (!inherits(ret[["data"]], "metric_graph_data")) {
+    class(ret[["data"]]) <- c("metric_graph_data", class(ret[["data"]]))
+  }
 
   return(ret)
 }
