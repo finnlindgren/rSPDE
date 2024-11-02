@@ -282,7 +282,8 @@ rspde_fit <- bru(cmp, data = prdata,
   family = "Gamma",
   options = list(
     control.inla = list(int.strategy = "eb"),
-    verbose = FALSE)
+    verbose = FALSE,
+    num.threads = "1:1")
 )
 ```
 
@@ -590,7 +591,8 @@ cmp.rep <-
 rspde_fit.rep <-
   bru(cmp.rep,
     data = rep.df,
-    family = "gaussian"
+    family = "gaussian",
+    options = list(num.threads = "1:1")
   )
 ```
 
@@ -772,7 +774,8 @@ rspde_fit_nonstat <-
   bru(cmp_nonstat,
     data = nonstat_df,
     family = "gaussian",
-    options = list(verbose = FALSE)
+    options = list(verbose = FALSE,
+                   num.threads = "1:1")
   )
 ```
 
@@ -840,7 +843,8 @@ rspde_fit_stat <-
   bru(cmp_stat,
     data = nonstat_df,
     family = "gaussian",
-    options = list(verbose = FALSE)
+    options = list(verbose = FALSE,
+                   num.threads = "1:1")
   )
 ```
 

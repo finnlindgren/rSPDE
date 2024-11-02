@@ -59,6 +59,7 @@ is mean-zero Gaussian measurement noise and \eqn{u(s)}{u(s)} is defined by
 a SPDE as described in \code{\link[=matern2d.operators]{matern2d.operators()}}.
 }
 \examples{
+ library(fmesher)
  n_loc <- 2000
  loc_2d_mesh <- matrix(runif(n_loc * 2), n_loc, 2)
  mesh_2d <- fm_mesh_2d(loc = loc_2d_mesh, cutoff = 0.01, max.edge = c(0.1, 0.5))
@@ -71,6 +72,8 @@ a SPDE as described in \code{\link[=matern2d.operators]{matern2d.operators()}}.
  sigma.e <- 0.1
  Y <- as.vector(A\%*\%u + sigma.e*rnorm(n.obs))
  A <- op$make_A(obs.loc)
+ proj <- fm_evaluator(mesh_2d, dims = c(100, 100),
+             xlim = c(0,1), ylim = c(0,1))
  Aprd <- op$make_A(proj$lattice$loc)
  u.krig <- predict(op, A = A, Aprd = Aprd, Y = Y, sigma.e = sigma.e)
 }
