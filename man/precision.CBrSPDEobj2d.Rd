@@ -4,7 +4,7 @@
 \alias{precision.CBrSPDEobj2d}
 \title{Get the precision matrix of CBrSPDEobj2d objects}
 \usage{
-\method{precision}{CBrSPDEobj}(
+\method{precision}{CBrSPDEobj2d}(
   object,
   user_nu = NULL,
   user_hx = NULL,
@@ -43,7 +43,12 @@ The precision matrix.
 Function to get the precision matrix of a CBrSPDEobj2d object
 }
 \examples{
-# todo
+library(fmesher)
+n_loc <- 2000
+loc_2d_mesh <- matrix(runif(n_loc * 2), n_loc, 2)
+mesh_2d <- fm_mesh_2d(loc = loc_2d_mesh, cutoff = 0.03, max.edge = c(0.1, 0.5))
+op <- matern2d.operators(mesh = mesh_2d)
+Q <- precision(op)
 }
 \seealso{
 \code{\link[=simulate.CBrSPDEobj2d]{simulate.CBrSPDEobj2d()}}, \code{\link[=matern2d.operators]{matern2d.operators()}}

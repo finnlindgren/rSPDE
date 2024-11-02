@@ -7,7 +7,10 @@
 graph_data_rspde(
   graph_rspde,
   name = "field",
+  spacetime = FALSE,
+  time_col = NULL,
   repl = NULL,
+  repl_col = NULL,
   group = NULL,
   group_col = NULL,
   only_pred = FALSE,
@@ -24,9 +27,15 @@ graph_data_rspde(
 
 \item{name}{A character string with the base name of the effect.}
 
+\item{spacetime}{Should the data be for 'spacetime' models?}
+
+\item{time_col}{Which "column" of the data contains the time variable?}
+
 \item{repl}{Which replicates? If there is no replicates, one
 can set \code{repl} to \code{NULL}. If one wants all replicates,
 then one sets to \code{repl} to \code{.all}.}
+
+\item{repl_col}{Which "column" of the data contains the replicate variable?}
 
 \item{group}{Which groups? If there is no groups, one
 can set \code{group} to \code{NULL}. If one wants all groups,

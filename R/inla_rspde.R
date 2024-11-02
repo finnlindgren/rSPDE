@@ -1426,6 +1426,8 @@ rspde.make.index <- function(name, n.spde = NULL, n.group = 1,
 #' @param graph_rspde An `inla_metric_graph_spde` object built with the
 #' `rspde.metric_graph()` function.
 #' @param name A character string with the base name of the effect.
+#' @param spacetime Should the data be for 'spacetime' models?
+#' @param time_col Which "column" of the data contains the time variable?
 #' @param repl Which replicates? If there is no replicates, one
 #' can set `repl` to `NULL`. If one wants all replicates,
 #' then one sets to `repl` to `.all`.

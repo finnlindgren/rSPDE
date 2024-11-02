@@ -35,12 +35,6 @@ covariance function. Will be used if parameterization is 'matern'.}
 approximation, which needs to be a positive integer.}
 
 \item{...}{Currently not used.}
-
-\item{mesh}{An \code{fmesher} mesh.}
-
-\item{type_rational_approximation}{Which type of rational
-approximation should be used? The current types are "chebfun",
-"brasil" or "chebfunLB".}
 }
 \value{
 It returns an object of class "CBrSPDEobj2d.

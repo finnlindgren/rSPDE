@@ -415,10 +415,6 @@ update.CBrSPDEobj <- function(object, user_nu = NULL, user_alpha = NULL,
 #' covariance function. Will be used if parameterization is 'matern'.
 #' @param user_m If non-null, update the order of the rational
 #' approximation, which needs to be a positive integer.
-#' @param mesh An `fmesher` mesh. 
-#' @param type_rational_approximation Which type of rational
-#' approximation should be used? The current types are "chebfun",
-#' "brasil" or "chebfunLB".
 #' @param ... Currently not used.
 #' @return It returns an object of class "CBrSPDEobj2d. 
 #' @method update CBrSPDEobj2d
@@ -2134,6 +2130,7 @@ predict.CBrSPDEobj <- function(object, A, Aprd, Y, sigma.e, mu = 0,
 #' @export
 #' @method predict CBrSPDEobj2d
 #' @examples
+#'  library(fmesher)
 #'  n_loc <- 2000
 #'  loc_2d_mesh <- matrix(runif(n_loc * 2), n_loc, 2)
 #'  mesh_2d <- fm_mesh_2d(loc = loc_2d_mesh, cutoff = 0.01, max.edge = c(0.1, 0.5))
@@ -2146,6 +2143,8 @@ predict.CBrSPDEobj <- function(object, A, Aprd, Y, sigma.e, mu = 0,
 #'  sigma.e <- 0.1
 #'  Y <- as.vector(A%*%u + sigma.e*rnorm(n.obs))
 #'  A <- op$make_A(obs.loc)
+#'  proj <- fm_evaluator(mesh_2d, dims = c(100, 100),
+#'              xlim = c(0,1), ylim = c(0,1))
 #'  Aprd <- op$make_A(proj$lattice$loc)
 #'  u.krig <- predict(op, A = A, Aprd = Aprd, Y = Y, sigma.e = sigma.e)
 predict.CBrSPDEobj2d <- function(object, A, Aprd, Y, sigma.e, mu = 0,
@@ -2321,10 +2320,11 @@ precision.CBrSPDEobj <- function(object,
 #' which needs to be a positive integer.
 #' @param ... Currently not used.
 #' @return The precision matrix.
-#' @method precision CBrSPDEobj
+#' @method precision CBrSPDEobj2d
 #' @seealso [simulate.CBrSPDEobj2d()], [matern2d.operators()]
 #' @export
 #' @examples
+#' library(fmesher)
 #' n_loc <- 2000
 #' loc_2d_mesh <- matrix(runif(n_loc * 2), n_loc, 2)
 #' mesh_2d <- fm_mesh_2d(loc = loc_2d_mesh, cutoff = 0.03, max.edge = c(0.1, 0.5))
