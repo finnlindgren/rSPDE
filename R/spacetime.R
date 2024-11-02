@@ -125,7 +125,7 @@ spacetime.operators <- function(mesh_space = NULL,
         if(d==2){
             P <- mesh$loc[,1:2]
             FV <- mesh$graph$tv
-            fem <- rSPDE.fem2d(FV, P)
+            fem <- rSPDE.fem2d(FV = FV, P = P)
             C <- fem$Cd
             Ci <- Diagonal(1/rowSums(C),n=dim(C)[1])
             G <- fem$G

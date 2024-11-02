@@ -101,15 +101,19 @@ rspde_lme <- function(formula,
                       hessian_args = list()) {
   null_model <- TRUE
   spacetime <- FALSE
+  anisotropic <- FALSE
   if (!is.null(model)) {
-    if (!inherits(model, c("CBrSPDEobj", "rSPDEobj", "rSPDEobj1d", "spacetimeobj"))) {
-      stop("The model should be an object of class 'CBrSPDEobj', 'rSPDEobj', 'rSPDEobj1d' or 'spacetimeobj'.")
+    if (!inherits(model, c("CBrSPDEobj", "rSPDEobj", "rSPDEobj1d", "spacetimeobj", "CBrSPDEobj2d"))) {
+      stop("The model should be an object of class 'CBrSPDEobj', 'CBrSPDEobj2d', 'rSPDEobj', 'rSPDEobj1d' or 'spacetimeobj'.")
     }
     null_model <- FALSE
     if(inherits(model, "spacetimeobj")) {
         spacetime <- TRUE
     }
-    if(!spacetime) {
+    if(inherits(model, "CBrSPDEobj2d")) {
+        anisotropic <- TRUE
+    }
+    if(!spacetime && !anisotropic) {
         model <- update(model, parameterization = "spde")    
     }
   }
@@ -280,7 +284,13 @@ rspde_lme <- function(formula,
         }
         starting_values_latent <- model$theta
       } else if (model$stationary && !spacetime){
-        starting_values_latent <- log(c(model$tau, model$kappa))
+          if(anisotropic) {
+              starting_values_latent <- c(log(model$sigma), log(model$hx), log(model$hy), 
+                                          -log(2/(model$hxy+1) - 1))
+          } else {
+              starting_values_latent <- log(c(model$tau, model$kappa))      
+          }
+        
       } else {
           if(model$alpha == 0) {
               starting_values_latent <- c(log(model$kappa), log(model$sigma), log(model$gamma))    
@@ -291,16 +301,26 @@ rspde_lme <- function(formula,
       }
     } else {
       if (model$stationary && !spacetime) {
-        if (length(starting_values_latent) != 2) {
-          stop("starting_values_latent must be a vector of length 2.")
-        }
-        if (any(starting_values_latent < 0)) {
-          stop("For stationary models, the values of starting_values_latent must be positive.")
-        }
+          if(anisotropic) {
+              if (length(starting_values_latent) != 4) {
+                  stop("starting_values_latent must be a vector of length 4.")
+              }
+          } else {
+              if (length(starting_values_latent) != 2) {
+                  stop("starting_values_latent must be a vector of length 2.")
+              }      
+              if (any(starting_values_latent < 0)) {
+                  stop("For stationary models, the values of starting_values_latent must be positive.")
+              }
+          }
       } else if (!model$stationary && !spacetime) {
         if (length(starting_values_latent) != ncol(model$B.tau)-1) {
           stop("starting_values_latent must be a vector of the same length as the number of the covariates for the latent model.")
         }
+      } else if (anisotropic) {
+          if (length(starting_values_latent) != 4) {
+              stop("starting_values_latent must be a vector of length 4.")
+          }
       } else {
           if (length(starting_values_latent) != 4) {
               stop("starting_values_latent must be a vector of length 4.")
@@ -470,7 +490,7 @@ rspde_lme <- function(formula,
 
     model_tmp <- model
     model_tmp$graph <- NULL
-    if(!inherits(model, "rSPDEobj1d") && !spacetime) {
+    if(!inherits(model, "rSPDEobj1d") && !spacetime && !anisotropic) {
         model_tmp$mesh <- NULL
         model_tmp$make_A <- NULL    
     }
@@ -529,6 +549,47 @@ rspde_lme <- function(formula,
 
         return(-loglik)
       }
+    } else if (inherits(model, "CBrSPDEobj2d")) {
+        likelihood <- function(theta) {
+            sigma_e <- exp(theta[1])
+            n_cov <- ncol(X_cov)
+            n_initial <- n_coeff_nonfixed
+            if (estimate_nu) {
+                nu <- exp(theta[2])
+                if (nu %% 1 == 0) {
+                    nu <- nu - 1e-5
+                }
+                nu <- min(nu, 9.99)
+                gap <- 1
+            } else {
+                gap <- 0
+            }
+            
+            sigma <- exp(theta[2 + gap])
+            hx <- exp(theta[3 + gap])
+            hy <- exp(theta[4 + gap])
+            hxy <- 2*exp(theta[5 + gap])/(1+exp(theta[5 + gap])) - 1
+            model_tmp <- update.CBrSPDEobj2d(model_tmp,
+                                             user_nu = nu, 
+                                             user_sigma = sigma,
+                                             user_hx = hx,
+                                             user_hy = hy,
+                                             user_hxy = hxy)
+        
+            
+            if (n_cov > 0) {
+                beta_cov <- theta[(n_initial + 1):(n_initial + n_cov)]
+            } else {
+                beta_cov <- NULL
+            }
+            
+            loglik <- aux_lme_CBrSPDE.matern2d.loglike(
+                object = model_tmp, y = y_resp, X_cov = X_cov, repl = repl,
+                A_list = A_list, sigma_e = sigma_e, beta_cov = beta_cov
+            )
+            #cat("nu = ", nu, ", sigma = ", sigma, ", h = (", hx, hy, hxy,"), beta = ", beta_cov, ", sigma_e = ", sigma_e, " : ", loglik, "\n")
+            return(-loglik)
+        }
   } else if (inherits(model, "spacetimeobj")) { 
       likelihood <- function(theta) {
           n_cov <- ncol(X_cov)
@@ -716,6 +777,9 @@ rspde_lme <- function(formula,
       parallel::clusterExport(cl, "aux_lme_CBrSPDE.matern.loglike",
         envir = as.environment(asNamespace("rSPDE"))
       )
+      parallel::clusterExport(cl, "aux_lme_CBrSPDE.matern2d.loglike",
+                              envir = as.environment(asNamespace("rSPDE"))
+      )
       parallel::clusterExport(cl, "aux_lme_rSPDE.matern.loglike",
         envir = as.environment(asNamespace("rSPDE"))
       )
@@ -809,8 +873,6 @@ rspde_lme <- function(formula,
         eig_hes <- eigen(observed_fisher)$value
         cond_pos_hes <- (min(eig_hes) > 1e-15)
       }
-
-
 
       problem_optim <- list()
 
@@ -923,7 +985,20 @@ rspde_lme <- function(formula,
         coeff <- c(exp(c(res$par[1:4])), res$par[-c(1:4)])
     } else {
         if (model$stationary) {
-            coeff <- exp(c(res$par[1:n_coeff_nonfixed]))
+            if(anisotropic) {
+                if (estimate_nu) {
+                    gap <- 1
+                } else {
+                    gap <- 0
+                }
+            
+                hxy <- 2*exp(res$par[5 + gap])/(1+exp(res$par[5 + gap])) - 1
+                coeff <- c(exp(res$par[1:(4+gap)]), hxy, res$par[-c(1:(5 + gap))])
+                coeff <- coeff[1:n_coeff_nonfixed]
+            } else {
+                coeff <- exp(c(res$par[1:n_coeff_nonfixed]))    
+            }
+            
             if (estimate_nu) {
                 estimated_alpha <- coeff[2] + model$d / 2
             }
@@ -945,8 +1020,17 @@ rspde_lme <- function(formula,
     n_random <- length(coeff) - n_fixed - 1
 
     if (model$stationary) {
-      par_change <- diag(c(exp(-c(res$par[1:n_coeff_nonfixed])), rep(1, n_fixed)))
-      observed_fisher <- par_change %*% observed_fisher %*% par_change
+        if(anisotropic) {
+            hxy <- 2*exp(res$par[n_coeff_nonfixed])/(1+exp(res$par[n_coeff_nonfixed]))-1
+            hxy.trans <- 2/(2*(hxy+1)- (hxy+1)^2) 
+            par_change <- diag(c(exp(c(-res$par[1:(n_coeff_nonfixed-1)])), hxy.trans, rep(1, n_fixed)))      
+        } else if (spacetime ){
+            # no transform for rho
+            par_change <- diag(c(exp(-c(res$par[1:(n_coeff_nonfixed-1)])), rep(1, n_fixed+1)))      
+        } else {
+            par_change <- diag(c(exp(-c(res$par[1:n_coeff_nonfixed])), rep(1, n_fixed)))      
+        }
+        observed_fisher <- par_change %*% observed_fisher %*% par_change
     }
 
     inv_fisher <- tryCatch(solve(observed_fisher), error = function(e) matrix(NA, nrow(observed_fisher), ncol(observed_fisher)))
@@ -957,9 +1041,11 @@ rspde_lme <- function(formula,
     std_random <- std_err[2:(n_coeff_nonfixed)]
 
     if (model$stationary && !spacetime) {
-    
-      par_names <- c("tau", "kappa")
-    
+        if(anisotropic) {
+            par_names <- c("sigma", "hx", "hy", "hxy")
+        } else {
+            par_names <- c("tau", "kappa")      
+        }
     } else if(spacetime) {
         if(model$alpha == 0){
             par_names <- c("kappa", "sigma", "gamma")
@@ -995,10 +1081,9 @@ rspde_lme <- function(formula,
       std_fixed <- NULL
     }
 
-    
     new_likelihood <- NULL
 
-    if (model$stationary && !spacetime) {
+    if (model$stationary && !spacetime && !anisotropic) {
       time_matern_par_start <- Sys.time()
       new_likelihood <- function(theta) {
         new_par <- res$par
@@ -1016,13 +1101,13 @@ rspde_lme <- function(formula,
          coeff_random_nonnu <- coeff_random
          new_observed_fisher <- observed_fisher[2:3, 2:3]
      }
-     if (estimate_nu) {
+     if (estimate_nu && !anisotropic) {
          change_par <- change_parameterization_lme(new_likelihood, model$d, coeff_random[1], coeff_random_nonnu,
                                                    hessian = new_observed_fisher # ,
                                                    # improve_gradient = improve_gradient,
                                                    # gradient_args = gradient_args
          )
-     } else {
+     } else if(!anisotropic){
          change_par <- change_parameterization_lme(new_likelihood, model$d, nu, coeff_random_nonnu,
                                                    hessian = new_observed_fisher # ,
                                                    # improve_gradient = improve_gradient,
@@ -1089,10 +1174,11 @@ rspde_lme <- function(formula,
   object <- list()
   object$coeff <- list(
     measurement_error = coeff_meas,
-    fixed_effects = coeff_fixed, random_effects = coeff_random
+    fixed_effects = coeff_fixed, 
+    random_effects = coeff_random
   )
   object$estimate_nu <- estimate_nu
-  if (object$estimate_nu && !null_model) {
+  if (object$estimate_nu && !null_model && !anisotropic) {
     names(object$coeff$random_effects)[1] <- "alpha"
     object$coeff$random_effects[1] <- object$coeff$random_effects[1] + model$d / 2
   }
@@ -1142,6 +1228,7 @@ rspde_lme <- function(formula,
   object$mle_par_orig <- res$par
   object$loc <- loc_df
   object$spacetime <- spacetime
+  object$anisotropic <- anisotropic
   if(spacetime) { 
       object$time <- time_df
   }
@@ -1171,9 +1258,11 @@ rspde_lme <- function(formula,
 print.rspde_lme <- function(x, ...) {
   #
   if (!is.null(x$latent_model)) {
-    if (x$latent_model$stationary && !x$spacetime) {
+    if (x$latent_model$stationary && !x$spacetime && !x$anisotropic) {
       call_name <- "Latent model - Whittle-Matern"
-    } else if (x$spacetime) { 
+    } else if (x$anisotropic) {
+        call_name <- "Latent model - Anisotropic Whittle-Matern"
+    } else if (x$spacetime) {
         call_name <- "Latent model - Spatio-temporal"
     } else {
       call_name <- "Latent model - Generalized Whittle-Matern"
@@ -1215,7 +1304,7 @@ print.rspde_lme <- function(x, ...) {
   cat(paste0("Random effects:", "\n"))
   if (!is.null(coeff_random)) {
     print(coeff_random)
-    if (x$stationary && !x$spacetime) {
+    if (x$stationary && !x$spacetime && !x$anisotropic) {
       cat(paste0("\n", "Random effects (Matern parameterization):", "\n"))
       print(x$matern_coeff$random_effects)
     }
@@ -1245,8 +1334,10 @@ summary.rspde_lme <- function(object, all_times = FALSE, ...) {
   nrandom <- length(object$coeff$random_effects)
   model_type <- !object$null_model
   if (model_type) {
-    if (object$latent_model$stationary && !object$spacetime) {
+    if (object$latent_model$stationary && !object$spacetime && !object$anisotropic) {
       call_name <- "Latent model - Whittle-Matern"
+    } else if(object$anisotropic) {
+        call_name <- "Latent model - Anisotropic Whittle-Matern"
     } else if(object$spacetime) {
         call_name <- "Latent model - Spatio-temporal"
     } else {
@@ -1257,14 +1348,14 @@ summary.rspde_lme <- function(object, all_times = FALSE, ...) {
   }
 
   coeff_fixed <- object$coeff$fixed_effects
-  coeff_random <- object$coeff$random_effects #
+  coeff_random <- object$coeff$random_effects 
   coeff_meas <- object$coeff$measurement_error
 
   SEr_fixed <- object$std_errors$std_fixed
   SEr_random <- object$std_errors$std_random
   SEr_meas <- object$std_errors$std_meas
 
-  if (object$stationary && !object$spacetime) {
+  if (object$stationary && !object$spacetime && !object$anisotropic) {
     coeff <- c(coeff_fixed, coeff_random, object$matern_coeff$random_effects, coeff_meas)
     SEr <- c(SEr_fixed, SEr_random, object$matern_coeff$std_random, SEr_meas)
   } else {
@@ -1276,7 +1367,7 @@ summary.rspde_lme <- function(object, all_times = FALSE, ...) {
     tab <- cbind(coeff, SEr, coeff / SEr, 2 * stats::pnorm(-abs(coeff / SEr)))
     colnames(tab) <- c("Estimate", "Std.error", "z-value", "Pr(>|z|)")
     rownames(tab) <- names(coeff)
-    if (object$stationary && !object$spacetime) {
+    if (object$stationary && !object$spacetime && !object$anisotropic) {
       tab <- list(
         fixed_effects = tab[seq.int(length.out = nfixed), , drop = FALSE], 
         random_effects = tab[seq.int(length.out = nrandom) + nfixed, , drop = FALSE],
@@ -1320,6 +1411,8 @@ summary.rspde_lme <- function(object, all_times = FALSE, ...) {
   }
   
   ans$spacetime <- object$spacetime
+  
+  ans$anisotropic <- object$anisotropic
 
   ans$all_times <- all_times
 
@@ -1645,7 +1738,7 @@ predict.rspde_lme <- function(object,
   sigma_e <- sigma.e
 
   ## construct Q
-  if (object$latent_model$stationary && !object$spacetime) {
+  if (object$latent_model$stationary && !object$spacetime && !object$anisotropic) {
       if (object$estimate_nu) {
           alpha_est <- coeff_random[1]
           tau_est <- coeff_random[2]
@@ -1662,6 +1755,28 @@ predict.rspde_lme <- function(object,
                               user_tau = tau_est,
                               parameterization = "spde"
       )    
+  } else if(object$anisotropic) {
+      if (object$estimate_nu) {
+          nu_est <- coeff_random[1]
+          sigma_est <- coeff_random[2]
+          hx_est <- coeff_random[3]
+          hy_est <- coeff_random[4]
+          hxy_est <- coeff_random[5]
+      } else {
+          nu_est <- NULL
+          sigma_est <- coeff_random[1]
+          hx_est <- coeff_random[2]
+          hy_est <- coeff_random[3]
+          hxy_est <- coeff_random[4]
+      }
+      
+      new_rspde_obj <- update(object$latent_model,
+                              user_sigma = sigma_est,
+                              user_hx = hx_est,
+                              user_hy = hy_est,
+                              user_hxy = hxy_est,
+                              user_nu = nu_est
+      )
   } else if(!object$spacetime) {
       if (object$estimate_nu) {
           alpha_est <- coeff_random[1]
@@ -1694,7 +1809,9 @@ predict.rspde_lme <- function(object,
 
   if(!inherits(object$latent_model, "rSPDEobj1d") && !inherits(object$latent_model, "spacetimeobj")) {
       Q <- new_rspde_obj$Q
-      Aprd <- kronecker(matrix(1, 1, object$rspde_order + 1), Aprd)    
+      if(!inherits(object$latent_model, "CBrSPDEobj2d")) {
+          Aprd <- kronecker(matrix(1, 1, object$rspde_order + 1), Aprd)        
+      }
   } else if(inherits(object$latent_model, "spacetimeobj")) {
       Q <- new_rspde_obj$Q
   }
