@@ -7,15 +7,13 @@
 graph_data_rspde(
   graph_rspde,
   name = "field",
-  spacetime = FALSE,
-  time_col = NULL,
   repl = NULL,
   repl_col = NULL,
   group = NULL,
   group_col = NULL,
   only_pred = FALSE,
   loc = NULL,
-  loc_name = NULL,
+  bru = FALSE,
   tibble = FALSE,
   drop_na = FALSE,
   drop_all_na = TRUE
@@ -26,10 +24,6 @@ graph_data_rspde(
 \code{rspde.metric_graph()} function.}
 
 \item{name}{A character string with the base name of the effect.}
-
-\item{spacetime}{Should the data be for 'spacetime' models?}
-
-\item{time_col}{Which "column" of the data contains the time variable?}
 
 \item{repl}{Which replicates? If there is no replicates, one
 can set \code{repl} to \code{NULL}. If one wants all replicates,
@@ -47,8 +41,7 @@ then one sets to \code{group} to \code{.all}.}
 
 \item{loc}{Locations. If not given, they will be chosen as the available locations on the metric graph internal dataset.}
 
-\item{loc_name}{Character with the name of the location variable to be used in
-'inlabru' prediction.}
+\item{bru}{Should the data be processed for \code{inlabru}?}
 
 \item{tibble}{Should the data be returned as a \code{tidyr::tibble}?}
 

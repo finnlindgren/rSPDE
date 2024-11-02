@@ -1426,8 +1426,6 @@ rspde.make.index <- function(name, n.spde = NULL, n.group = 1,
 #' @param graph_rspde An `inla_metric_graph_spde` object built with the
 #' `rspde.metric_graph()` function.
 #' @param name A character string with the base name of the effect.
-#' @param spacetime Should the data be for 'spacetime' models?
-#' @param time_col Which "column" of the data contains the time variable?
 #' @param repl Which replicates? If there is no replicates, one
 #' can set `repl` to `NULL`. If one wants all replicates,
 #' then one sets to `repl` to `.all`.
@@ -1438,8 +1436,7 @@ rspde.make.index <- function(name, n.spde = NULL, n.group = 1,
 #' @param group_col Which "column" of the data contains the group variable?
 #' @param only_pred Should only return the `data.frame` to the prediction data?
 #' @param loc  Locations. If not given, they will be chosen as the available locations on the metric graph internal dataset.
-#' @param loc_name Character with the name of the location variable to be used in
-#' 'inlabru' prediction.
+#' @param bru Should the data be processed for `inlabru`?
 #' @param tibble Should the data be returned as a `tidyr::tibble`?
 #' @param drop_na Should the rows with at least one NA for one of the columns be removed? DEFAULT is `FALSE`. This option is turned to `FALSE` if `only_pred` is `TRUE`.
 #' @param drop_all_na Should the rows with all variables being NA be removed? DEFAULT is `TRUE`. This option is turned to `FALSE` if `only_pred` is `TRUE`.
@@ -1447,15 +1444,13 @@ rspde.make.index <- function(name, n.spde = NULL, n.group = 1,
 #' @export
 
 graph_data_rspde <- function(graph_rspde, name = "field", 
-                             spacetime = FALSE,
-                             time_col = NULL,
                              repl = NULL, 
                              repl_col = NULL,
                              group = NULL,
                              group_col = NULL,
                              only_pred = FALSE,
                              loc = NULL,
-                             loc_name = NULL,
+                             bru = FALSE,
                              tibble = FALSE,
                              drop_na = FALSE, drop_all_na = TRUE) {
   ret <- list()
@@ -1465,15 +1460,6 @@ graph_data_rspde <- function(graph_rspde, name = "field",
   nu <- graph_rspde$nu
 
   graph_tmp <- graph_rspde$mesh
-
-  if(spacetime){
-    if(is.null(time_col)){
-      stop("time_col must be provided if spacetime is TRUE.")
-    }
-    if(!(time_col %in% names(graph_tmp$.__enclos_env__$private$data))){
-      stop("time_col must be a column in the data.")
-    }
-  }
 
   if(!is.null(repl_col)){
     if(!(repl_col %in% names(graph_tmp$.__enclos_env__$private$data))){
@@ -1578,23 +1564,6 @@ graph_data_rspde <- function(graph_rspde, name = "field",
     repl_vec <- repl_vec[idx_temp]
   }
 
-  if (!is.null(loc_name)) {
-    if(!spacetime){
-      ret[["index"]][[loc_name]] <- cbind(
-        ret[["data"]][[".edge_number"]],
-        ret[["data"]][[".distance_on_edge"]]
-      )
-    } else{
-      ret[["index"]] <- list(
-        space = cbind(
-        ret[["data"]][[".edge_number"]],
-        ret[["data"]][[".distance_on_edge"]]
-      ),
-      time = ret[["data"]][[time_col]]
-      )
-    }
-  }
-
   ret[["repl"]] <- repl_vec
 
   if (!is.null(group_col)) {
@@ -1605,7 +1574,7 @@ graph_data_rspde <- function(graph_rspde, name = "field",
     group <- 1
   }
 
-  if(!is.null(graph_rspde$rspde.order)){
+  if(!is.null(graph_rspde$rspde.order) && !bru){
 
     ret[["basis"]] <- Matrix::Matrix(nrow = 0, ncol = 0)
      
