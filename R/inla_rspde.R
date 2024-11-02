@@ -1504,7 +1504,7 @@ graph_data_rspde <- function(graph_rspde, name = "field",
   if (!is.null(repl)) {
     if (repl[1] == ".all") {
       groups <- data[[repl_col]]
-      repl <- unique(groups)
+      repl <- unique(groups[!is.na(groups)])
     }
   }
 
