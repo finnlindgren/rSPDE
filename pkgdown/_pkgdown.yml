@@ -106,7 +106,6 @@ reference:
     - summary.CBrSPDEobj2d
     - update.CBrSPDEobj2d
     - precision.CBrSPDEobj2d
-    - simulate.rSPDEobj1d2d
     - simulate.rSPDEobj1d
     - summary.rSPDEobj1d
     - update.rSPDEobj1d
