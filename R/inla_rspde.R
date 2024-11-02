@@ -1429,6 +1429,7 @@ rspde.make.index <- function(name, n.spde = NULL, n.group = 1,
 #' @param repl Which replicates? If there is no replicates, one
 #' can set `repl` to `NULL`. If one wants all replicates,
 #' then one sets to `repl` to `.all`.
+#' @param repl_col Which "column" of the data contains the replicate variable?
 #' @param group Which groups? If there is no groups, one
 #' can set `group` to `NULL`. If one wants all groups,
 #' then one sets to `group` to `.all`.
@@ -1443,7 +1444,10 @@ rspde.make.index <- function(name, n.spde = NULL, n.group = 1,
 #' @return An 'INLA' and 'inlabru' friendly list with the data.
 #' @export
 
-graph_data_rspde <- function(graph_rspde, name = "field", repl = NULL, group = NULL,
+graph_data_rspde <- function(graph_rspde, name = "field", 
+                             repl = NULL, 
+                             repl_col = NULL,
+                             group = NULL,
                              group_col = NULL,
                              only_pred = FALSE,
                              loc = NULL,
@@ -1456,30 +1460,59 @@ graph_data_rspde <- function(graph_rspde, name = "field", repl = NULL, group = N
 
   nu <- graph_rspde$nu
 
-  graph_tmp <- graph_rspde$mesh$clone()
+  graph_tmp <- graph_rspde$mesh
+
+  if(!is.null(repl_col)){
+    if(!(repl_col %in% names(graph_tmp$.__enclos_env__$private$data))){
+      stop("repl_col must be a column in the data.")
+    }
+  }
+
+  if(!is.null(group_col)){
+    if(!(group_col %in% names(graph_tmp$.__enclos_env__$private$data))){
+      stop("group_col must be a column in the data.")
+    }
+  }
+
+  if(!is.null(repl) && is.null(repl_col)){
+    stop("repl_col must be provided if repl is not NULL.")
+  }
+
+  if(!is.null(group) && is.null(group_col)){
+    stop("group_col must be provided if group is not NULL.")
+  }
+
+
   if (is.null((graph_tmp$.__enclos_env__$private$data))) {
     stop("The graph has no data!")
   }
+
+  data <- graph_tmp$.__enclos_env__$private$data
+
   if (only_pred) {
-    idx_anyNA <- !idx_not_any_NA(graph_tmp$.__enclos_env__$private$data)
-    graph_tmp$.__enclos_env__$private$data <- lapply(graph_tmp$.__enclos_env__$private$data, function(dat) {
+    idx_anyNA <- !idx_not_any_NA(data)
+    data <- lapply(data, function(dat) {
       return(dat[idx_anyNA])
     })
     drop_na <- FALSE
     drop_all_na <- FALSE
   }
 
-  if (is.null(repl)) {
-    groups <- graph_tmp$.__enclos_env__$private$data[[".group"]]
-    repl <- groups[1]
-  } else if (repl[1] == ".all") {
-    groups <- graph_tmp$.__enclos_env__$private$data[[".group"]]
-    repl <- unique(groups)
+  if (!is.null(repl)) {
+    if (repl[1] == ".all") {
+      groups <- data[[repl_col]]
+      repl <- unique(groups)
+    }
   }
 
-  ret[["data"]] <- select_repl_group(graph_tmp$.__enclos_env__$private$data, repl = repl, group = group, group_col = group_col)
+  ret[["data"]] <- select_repl_group(data, repl = repl, repl_col, group = group, group_col = group_col)
 
-  repl_vec <- ret[["data"]][[".group"]]
+  if(is.null(repl_col)){
+    repl_vec <- rep(1, length(ret[["data"]][[".group"]]))
+  } else{
+    repl_vec <- ret[["data"]][[repl_col]]
+  }
+
   if (!is.null(group_col)) {
     group_vec <- ret[["data"]][[group_col]]
     group <- unique(group_vec)
@@ -1494,7 +1527,7 @@ graph_data_rspde <- function(graph_rspde, name = "field", repl = NULL, group = N
   if (is.null(group)) {
     n.group <- 1
   } else if (group[1] == ".all") {
-    n.group <- length(unique(graph_tmp$.__enclos_env__$private$data[[group_col]]))
+    n.group <- length(unique(data[[group_col]]))
   } else {
     n.group <- length(unique(group))
   }
@@ -1537,10 +1570,11 @@ graph_data_rspde <- function(graph_rspde, name = "field", repl = NULL, group = N
   }
 
 
+  if(!is.null(graph_rspde$rspde.order)){
+    ret[["index"]] <- rspde.make.index(mesh = graph_tmp, n.group = n.group, n.repl = n.repl, nu = nu, dim = 1, rspde.order = rspde.order, name = name)
+  }
 
-  ret[["index"]] <- rspde.make.index(mesh = graph_tmp, n.group = n.group, n.repl = n.repl, nu = nu, dim = 1, rspde.order = rspde.order, name = name)
-
-  ret[["repl"]] <- ret[["data"]][[".group"]]
+  ret[["repl"]] <- repl_vec
 
   if (!is.null(group_col)) {
     group_vec <- ret[["data"]][[group_col]]
@@ -1550,79 +1584,47 @@ graph_data_rspde <- function(graph_rspde, name = "field", repl = NULL, group = N
     group <- 1
   }
 
-  repl_vec <- ret[["repl"]]
+  if(!is.null(graph_rspde$rspde.order)){
 
-  n_obs <- sum(ret[["data"]][[".group"]] == ret[["data"]][[".group"]][1])
+    ret[["basis"]] <- Matrix::Matrix(nrow = 0, ncol = 0)
 
-  # index_basis <- rep(rep(1:n_obs, times = n.group),
-  #           times = n.repl)
+    loc_basis <- cbind(ret[["data"]][[".edge_number"]], ret[["data"]][[".distance_on_edge"]])
 
-  ret[["basis"]] <- Matrix::Matrix(nrow = 0, ncol = 0)
+    # We assume the data is ordered by group, then repl. This will be handled by the advanced grouping we are implementing
 
-  loc_basis <- cbind(ret[["data"]][[".edge_number"]], ret[["data"]][[".distance_on_edge"]])
+    for (repl_ in repl) {
+      idx_rep <- (repl_vec == repl_)
+      for (group_ in group) {
+        idx_grp <- (group_vec == group_)
+        idx_grp_rep <- as.logical(idx_grp * idx_rep)
+        ret[["basis"]] <- Matrix::bdiag(ret[["basis"]], graph_tmp$fem_basis(loc_basis[idx_grp_rep, ]))
+      }
+    }
 
-  # We assume the data is ordered by group, then repl. This will be handled by the advanced grouping we are implementing
-
-  for (repl_ in repl) {
-    idx_rep <- (repl_vec == repl_)
-    for (group_ in group) {
-      idx_grp <- (group_vec == group_)
-      idx_grp_rep <- as.logical(idx_grp * idx_rep)
-      ret[["basis"]] <- Matrix::bdiag(ret[["basis"]], graph_tmp$fem_basis(loc_basis[idx_grp_rep, ]))
+    if (!graph_rspde$integer.nu) {
+      ret[["basis"]] <- kronecker(
+        matrix(1, 1, rspde.order + 1),
+        ret[["basis"]]
+      )
     }
   }
 
-  if (!graph_rspde$integer.nu) {
-    ret[["basis"]] <- kronecker(
-      matrix(1, 1, rspde.order + 1),
-      ret[["basis"]]
-    )
-  }
 
   return(ret)
-}
-
-
-
-#' Extraction of vector of replicates for 'INLA'
-#'
-#' Extracts the vector of replicates from an 'rSPDE'
-#' model object for 'INLA'
-#'
-#' @param graph_spde An `rspde_metric_graph` object built with the
-#' `rspde.metric_graph()` function from the 'rSPDE' package.
-#' @param repl Which replicates? If there is no replicates, one
-#' can set `repl` to `NULL`. If one wants all replicates,
-#' then one sets to `repl` to `.all`.
-#' @param group Which groups? If there is no groups, one
-#' can set `group` to `NULL`. If one wants all groups,
-#' then one sets to `group` to `.all`.
-#' @param group_col Which "column" of the data contains the group variable?
-#' @return The vector of replicates paired with groups.
-#' @noRd
-
-graph_repl_rspde <- function(graph_spde, repl = NULL, group = NULL, group_col = NULL) {
-  # graph_tmp <- graph_spde$graph_spde$clone()
-  if (is.null(repl)) {
-    # groups <- graph_tmp$data[[".group"]]
-    groups <- graph_spde$graph_spde$.__enclos_env__$private$data[[".group"]]
-    repl <- groups[1]
-  } else if (repl[1] == ".all") {
-    # ret <- graph_tmp$data
-    groups <- graph_spde$graph_spde$.__enclos_env__$private$data[[".group"]]
-    repl <- unique(groups)
-  }
-
-  ret <- select_repl_group(graph_spde$graph_spde$.__enclos_env__$private$data, repl = repl, group = group, group_col = group_col)
-  return(ret[[".group"]])
 }
 
 #' Select replicate and group
 #' @noRd
 #'
-select_repl_group <- function(data_list, repl, group, group_col) {
+select_repl_group <- function(data_list, repl, repl_col, group, group_col) {
   if (!is.null(group) && is.null(group_col)) {
     stop("If you specify group, you need to specify group_col!")
+  }
+  if(!is.null(repl) && is.null(repl_col)){
+    stop("If you specify repl, you need to specify repl_col!")
+  }
+  if(is.null(repl_col) && is.null(group_col)){
+    return(data_list)    
   }
   if (!is.null(group)) {
     grp <- data_list[[group_col]]
@@ -1630,14 +1632,16 @@ select_repl_group <- function(data_list, repl, group, group_col) {
     data_result <- lapply(data_list, function(dat) {
       dat[grp]
     })
-    replicates <- data_result[[".group"]]
-    replicates <- which(replicates %in% repl)
-    data_result <- lapply(data_result, function(dat) {
-      dat[replicates]
-    })
+    if(!is.null(repl_col)){
+      replicates <- data_result[[repl_col]]
+      replicates <- which(replicates %in% repl)
+      data_result <- lapply(data_result, function(dat) {
+        dat[replicates]
+      })
+    }
     return(data_result)
   } else {
-    replicates <- data_list[[".group"]]
+    replicates <- data_list[[repl_col]]
     replicates <- which(replicates %in% repl)
     data_result <- lapply(data_list, function(dat) {
       dat[replicates]

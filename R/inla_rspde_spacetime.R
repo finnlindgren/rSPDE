@@ -261,6 +261,12 @@ rspde.spacetime <- function(mesh_space = NULL,
   model$prior.rho <- prior.rho
   model$d <- op$d
   model$prior.precision <- prior.precision
+  if(!is.null(mesh_space)){
+    model$mesh <- mesh_space
+  } else{
+    model$mesh <- graph
+  }
+  model$time_mesh <- mesh_time
   
   class(model) <- c("inla_rspde_spacetime", class(model))
 
