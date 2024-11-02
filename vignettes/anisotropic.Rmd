@@ -1,5 +1,5 @@
 ---
-title: "Aniotropic models"
+title: "Anisotropic models"
 author: "David Bolin and Alexandre B. Simas"
 date: "Created: 2024-10-23. Last modified: `r Sys.Date()`."
 output: rmarkdown::html_vignette
