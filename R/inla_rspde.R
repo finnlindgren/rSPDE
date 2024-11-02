@@ -1620,7 +1620,7 @@ graph_data_rspde <- function(graph_rspde, name = "field",
       for (group_ in group) {
         idx_grp <- (group_vec == group_)
         idx_grp_rep <- as.logical(idx_grp * idx_rep)
-        ret[["basis"]] <- Matrix::bdiag(ret[["basis"]], graph_tmp$fem_basis(loc_basis[idx_grp_rep, ]))
+        ret[["basis"]] <- Matrix::bdiag(ret[["basis"]], graph_tmp$fem_basis(loc_basis[idx_grp_rep, ,drop=FALSE]))
       }
     }
 
