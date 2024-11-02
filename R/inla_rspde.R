@@ -1497,6 +1497,10 @@ graph_data_rspde <- function(graph_rspde, name = "field",
   if (is.null((graph_tmp$.__enclos_env__$private$data))) {
     stop("The graph has no data!")
   }
+  
+  if(is.null(repl) && !is.null(repl_col)){
+    stop("If repl_col is provided, repl must be provided.")
+  }
 
   data <- graph_tmp$.__enclos_env__$private$data
 
@@ -1556,6 +1560,7 @@ graph_data_rspde <- function(graph_rspde, name = "field",
     if (is_tbl) {
       ret[["data"]] <- tidyr::as_tibble(ret[["data"]])
     }
+    repl_vec <- repl_vec[idx_temp]
   }
   if (drop_na) {
     if (!inherits(ret[["data"]], "tbl_df")) {
@@ -1566,6 +1571,7 @@ graph_data_rspde <- function(graph_rspde, name = "field",
     } else {
       ret[["data"]] <- tidyr::drop_na(ret[["data"]])
     }
+    repl_vec <- repl_vec[idx_temp]
   }
 
   if (!is.null(loc_name)) {
