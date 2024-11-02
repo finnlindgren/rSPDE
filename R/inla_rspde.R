@@ -1530,6 +1530,8 @@ graph_data_rspde <- function(graph_rspde, name = "field",
     repl_vec <- ret[["data"]][[repl_col]]
   }
 
+  repl <- unique(repl_vec)
+
   if (!is.null(group_col)) {
     group_vec <- ret[["data"]][[group_col]]
     group <- unique(group_vec)
@@ -1606,6 +1608,8 @@ graph_data_rspde <- function(graph_rspde, name = "field",
   if(!is.null(graph_rspde$rspde.order)){
 
     ret[["basis"]] <- Matrix::Matrix(nrow = 0, ncol = 0)
+     
+    ret[["index"]] <- rspde.make.index(mesh = graph_tmp, n.group = n.group, n.repl = n.repl, nu = nu, dim = 1, rspde.order = rspde.order, name = name)
 
     loc_basis <- cbind(ret[["data"]][[".edge_number"]], ret[["data"]][[".distance_on_edge"]])
 
