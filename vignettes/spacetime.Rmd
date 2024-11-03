@@ -203,7 +203,9 @@ cmp <- y ~ 1 + field(list(space=space, time = time), model = st_bru)
 We are now in a position to fit the model:
 
 ```{r}
-bru_fit <- bru(cmp, data = df)
+bru_fit <- bru(cmp, data = df,
+    options = list(num.threads = "1:1")
+  )
 ```
 
 Let us now compare the estimated results (the means of the parameters) with the true values:
@@ -234,6 +236,7 @@ mesh_2d <- fm_mesh_2d(
 )
 plot(mesh_2d, main = "")
 ```
+
 We now proceed as previously by defining a temporal region and the model
 ```{r}
 t <- seq(from = 0, to = 10, length.out = 11)
@@ -343,7 +346,9 @@ cmp <- y ~ 1 + field(list(space=cbind(coord_x, coord_y),
 We are now in a position to fit the model:
 
 ```{r}
-bru_fit_field <- bru(cmp, data = df_bru)
+bru_fit_field <- bru(cmp, data = df_bru,
+    options = list(num.threads = "1:1")
+  )
 ```
 
 Let us now compare the estimated results (the means of the parameters) with the true values:
