@@ -1010,30 +1010,14 @@ cross_validation <- function(models, model_names = NULL, scores = c("mse", "crps
           linkfuninv <- function(x) {
             x
           }
-        } else if (models[[model_number]]$.args$family == "gamma") {
+        } else if (models[[model_number]]$.args$family %in% c("gamma", "poisson", "stochvol", "stochvolln", "stochvolnig", "stochvolt")) {
           linkfuninv <- function(x) {
-            exp(x)
-          }
-        } else if (models[[model_number]]$.args$family == "poisson") {
-          linkfuninv <- function(x) {
-            exp(x)
-          }
-        } else if (models[[model_number]]$.args$family == "stochvol") {
-          linkfuninv <- function(x) {
-            exp(x)
-          }
-        } else if (models[[model_number]]$.args$family == "stochvolln") {
-          linkfuninv <- function(x) {
-            exp(x)
-          }
-        } else if (models[[model_number]]$.args$family == "stochvolnig") {
-          linkfuninv <- function(x) {
-            exp(x)
-          }
-        } else if (models[[model_number]]$.args$family == "stochvolt") {
-          linkfuninv <- function(x) {
-            exp(x)
-          }
+              exp(x)
+            }
+        } else if(models[[model_number]]$.args$family  == "binomial"){
+            linkfuninv <- function(x) {
+              exp(x)/(1 + exp(x))
+            }
         } else{
         stop(paste("The family", models[[model_number]]$.args$family, "is not supported yet, please, raise an issue in https://github.com/davidbolin/rSPDE/issues requesting the support."))
         }
@@ -1245,7 +1229,51 @@ cross_validation <- function(models, model_names = NULL, scores = c("mse", "crps
             })
           }
         }
-      } else if (models[[model_number]]$.args$family  == "stochvol") {
+      } else if (models[[model_number]]$.args$family == "binomial") {
+        if ("dss" %in% scores) {
+          post_mean_tmp <- rowMeans(posterior_samples[, 1:n_samples])
+          posterior_variance_of_mean <- rowMeans(posterior_samples[, 1:n_samples]^2) - post_mean_tmp^2
+          post_var <- post_mean_tmp + posterior_variance_of_mean
+
+          dss[fold, model_number] <- mean((test_data - rowMeans(posterior_samples[, (n_samples + 1):(2 * n_samples)]))^2 / post_var + log(post_var))
+          if (orientation_results == "positive") {
+            dss[fold, model_number] <- -dss[fold, model_number]
+          }
+          if (print) {
+            cat(paste("DSS:", dss[fold, model_number], "\n"))
+          }
+        }
+
+        if (("crps" %in% scores) || ("scrps" %in% scores)) {
+          if (parallelize_RP) {
+            Y1_sample <- foreach::`%dopar%`(foreach::foreach(i = 1:length(test_data)), {
+              stats::rbinom(n = n_samples, size = 1, prob = posterior_samples[i, 1:n_samples])
+            })
+            Y2_sample <- foreach::`%dopar%`(foreach::foreach(i = 1:length(test_data)), {
+              stats::rbinom(n = n_samples, size = 1, prob = posterior_samples[i, (n_samples + 1):(2 * n_samples)])
+            })
+            E1_tmp <- foreach::`%dopar%`(foreach::foreach(i = 1:length(test_data)), {
+              mean(abs(Y1_sample[[i]] - test_data[i]))
+            })
+            E2_tmp <- foreach::`%dopar%`(foreach::foreach(i = 1:length(test_data)), {
+              mean(abs(Y1_sample[[i]] - Y2_sample[[i]]))
+            })
+          } else {
+            Y1_sample <- lapply(1:length(test_data), function(i) {
+              stats::rbinom(n = n_samples, size = 1, prob = posterior_samples[i, 1:n_samples])
+            })
+            Y2_sample <- lapply(1:length(test_data), function(i) {
+              stats::rbinom(n = n_samples, size = 1, prob = posterior_samples[i, (n_samples + 1):(2 * n_samples)])
+            })
+            E1_tmp <- lapply(1:length(test_data), function(i) {
+              mean(abs(Y1_sample[[i]] - test_data[i]))
+            })
+            E2_tmp <- lapply(1:length(test_data), function(i) {
+              mean(abs(Y1_sample[[i]] - Y2_sample[[i]]))
+            })
+          }
+        }
+        } else if (models[[model_number]]$.args$family  == "stochvol") {
         new_n_samples <- tmp_n_samples
 
         if ("Offset precision for stochvol" %in% colnames(hyper_samples_1)) {
