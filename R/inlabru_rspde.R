@@ -819,6 +819,7 @@ prepare_df_pred <- function(df_pred, result, idx_test) {
 #' Typically this will be returned list obtained by setting the argument `return_train_test` to `TRUE`.
 #' @param return_train_test Logical. Should the training and test indexes be returned? If 'TRUE' the train and test indexes will the 'train_test' element of the returned list.
 #' @param return_post_samples If `TRUE` the posterior samples will be included in the returned list.
+#' @param return_true_test_values If `TRUE` the true test values will be included in the returned list.
 #' @param parallelize_RP Logical. Should the computation of CRPS and SCRPS (and for some cases, DSS) be parallelized?
 #' @param n_cores_RP Number of cores to be used if `parallelize_rp` is `TRUE`.
 #' @param true_CV Should a `TRUE` cross-validation be performed? If `TRUE` the models will be fitted on the training dataset. If `FALSE`, the parameters will be kept fixed at the ones obtained in the result object.
@@ -836,6 +837,7 @@ cross_validation <- function(models, model_names = NULL, scores = c("mse", "crps
                              train_test_indexes = NULL,
                              return_train_test = FALSE,
                              return_post_samples = FALSE,
+                             return_true_test_values = FALSE,
                              parallelize_RP = FALSE, n_cores_RP = parallel::detectCores() - 1,
                              true_CV = TRUE, save_settings = FALSE,
                              print = TRUE,
@@ -963,11 +965,16 @@ cross_validation <- function(models, model_names = NULL, scores = c("mse", "crps
   post_samples <- list()
   hyper_samples <- list()
 
+  true_test_values = list()
+
   for (model_number in 1:length(models)) {
     post_samples[[model_names[[model_number]]]] <- vector(mode = "list", length = length(train_list))
     hyper_samples[[model_names[[model_number]]]] <- vector(mode = "list", length = 2)
     hyper_samples[[model_names[[model_number]]]][[1]] <- vector(mode = "list", length = length(train_list))
     hyper_samples[[model_names[[model_number]]]][[2]] <- vector(mode = "list", length = length(train_list))
+    if(return_true_test_values){
+      true_test_values[[model_names[[model_number]]]] <- vector(mode = "list", length = length(train_list))
+    }
   }
   # Perform the cross-validation
 
@@ -1060,6 +1067,10 @@ cross_validation <- function(models, model_names = NULL, scores = c("mse", "crps
       if (return_post_samples) {
         post_samples[[model_names[[model_number]]]][[fold]] <- posterior_samples
         hyper_samples[[model_names[[model_number]]]][[1]][[fold]] <- hyper_samples_1
+      }
+
+      if(return_true_test_values){
+        true_test_values[[model_names[[model_number]]]][[fold]] <- test_data
       }
 
 
@@ -1649,8 +1660,16 @@ cross_validation <- function(models, model_names = NULL, scores = c("mse", "crps
       if (return_train_test) {
         out[["train_test"]] <- list(train = train_list, test = test_list)
       }
+      if(return_true_test_values){
+        out[["true_test_values"]] <- true_test_values
+      }
     } else if (return_train_test) {
       out <- list(scores_df = result_df, train_test = list(train = train_list, test = test_list))
+      if(return_true_test_values){
+        out[["true_test_values"]] <- true_test_values
+      }      
+    } else if(return_true_test_values){
+      out <- list(scores_df = result_df, true_test_values = true_test_values)
     } else {
       out <- result_df
     }
@@ -1668,6 +1687,10 @@ cross_validation <- function(models, model_names = NULL, scores = c("mse", "crps
     }
     if (return_train_test) {
       out[["train_test"]] <- list(train = train_list, test = test_list)
+    }
+
+    if(return_true_test_values){
+        out[["true_test_values"]] <- true_test_values
     }
 
     if (return_post_samples) {
