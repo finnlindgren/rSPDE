@@ -75,9 +75,17 @@ double *inla_cgeneric_rspde_spacetime_model(inla_cgeneric_cmd_tp cmd, double *th
     inla_cgeneric_mat_tp *prior_precision = data->mats[0];
 
     if (d == 2) {
-        assert(prior_precision->nrow == 5 && prior_precision->ncol == 5);
+        if(drift == 1){
+            assert(prior_precision->nrow == 5 && prior_precision->ncol == 5);
+        } else{
+            assert(prior_precision->nrow == 4 && prior_precision->ncol == 4);
+        }
     } else if (d == 1) {
-        assert(prior_precision->nrow == 4 && prior_precision->ncol == 4);
+        if(drift == 1){
+            assert(prior_precision->nrow == 4 && prior_precision->ncol == 4);
+        } else{
+            assert(prior_precision->nrow == 3 && prior_precision->ncol == 3);
+        }
     } else {
         // Handle unexpected dimension cases if necessary
         assert(0 && "Unsupported dimension for prior precision matrix");
