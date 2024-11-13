@@ -471,20 +471,22 @@ rspde_model <- rspde.matern(
 ```
 
 The advantage with `inlabru` is that we do not need to form the stack manually, but can simply collect the required data in 
-a `data.frame()`:
+a `data.frame()`. Further, we can turn the data into an `sf` object.
 
 ```{r}
+library(sf)
 toy_df <- data.frame(coord1 = loc_2d_mesh[,1],
                      coord2 = loc_2d_mesh[,2],
                      y = as.vector(y))
-coordinates(toy_df) <- c("coord1", "coord2")
+toy_df <- st_as_sf(toy_df, coords = c("coord1", "coord2"))
 ```
 
 Finally, we create the component and fit:
 
 ```{r message=FALSE, warning=FALSE}
 cmp <-
-  y ~ -1 + field(coordinates, model = rspde_model)
+  y ~ -1 + field(geometry, 
+                    model = rspde_model)
 
 rspde_bru_fit <-
   bru(cmp,
@@ -551,43 +553,41 @@ a dense grid in the region.
 We begin by creating the grid of the locations where we want to evaluate the predictions. We begin
 by creating a regular grid in and then extract the coorinates:
 ```{r}
-pred_coords <- data.frame(x1 = projgrid$lattice$loc[,1],
-                          x2 = projgrid$lattice$loc[,2])
-coordinates(pred_coords) <- c("x1", "x2")
+pred_coords <- data.frame(coord1 = projgrid$lattice$loc[,1],
+                          coord2 = projgrid$lattice$loc[,2])
+pred_coords <- st_as_sf(pred_coords, coords = c("coord1", "coord2"))                          
 ```
 
 Let us now compute the predictions. An advantage with `inlabru` is that we can do this after fitting the model to the data:
 
 ```{r}
-field_pred <- predict(rspde_bru_fit, pred_coords, ~field)
+field_pred <- predict(rspde_bru_fit, pred_coords, ~ data.frame(field))
 ```
 
 The following figure shows the mean of these predictions:
 
 ```{r, echo=TRUE, fig.align='center', message=FALSE, warning=FALSE}
-field_pred_df <- field_pred@data
-field_pred_df <- cbind(field_pred_df, field_pred@coords)
-ggplot(field_pred_df, aes(x = x1, y = x2, fill = mean)) +
-  geom_raster() + xlim(0,1) + ylim(0,1) + 
+ggplot() + gg(field_pred, geom = "tile", aes(fill = mean)) + 
+  xlim(0,1) + ylim(0,1) + 
   scale_fill_viridis()
 ```
 
 The following figure shows the marginal standard deviations of the predictions:
 
 ```{r plot_pred_sd_bru, fig.align='center', echo=TRUE, message=FALSE, warning=FALSE}
-ggplot(field_pred_df, aes(x = x1, y = x2, fill = sd)) +
-  geom_raster() + xlim(0,1) + ylim(0,1) + 
+ggplot() + gg(field_pred, geom = "tile", aes(fill = sd)) + 
+  xlim(0,1) + ylim(0,1) + 
   scale_fill_viridis()
 ```
 
 An alternative and very simple approach is to use the `fm_pixels()` function:
 
 ```{r plot_pred_pxl, fig.align='center', warning=FALSE}
-pxl <- fm_pixels(mesh_2d, format="sp")
+pxl <- fm_pixels(mesh_2d)
 
 field_pred <- predict(rspde_bru_fit, pxl, ~field)
 
-ggplot() + gg(field_pred) +
+ggplot() + gg(field_pred, geom = "tile", aes(fill = mean)) +
   scale_fill_viridis() + xlim(0,1) + ylim(0,1)
 ```
 
