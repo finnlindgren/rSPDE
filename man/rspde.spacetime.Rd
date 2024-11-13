@@ -98,9 +98,9 @@ graph$compute_fem()
 time_loc <- seq(from = 0, to = 10, length.out = 11)
 
 # Create the model
-model <- rspde.spacetime(mesh_space = graph, 
-                         time_loc = time_loc, 
-                         alpha = 2, 
+model <- rspde.spacetime(mesh_space = graph,
+                         time_loc = time_loc,
+                         alpha = 2,
                          beta = 1)
 
 }

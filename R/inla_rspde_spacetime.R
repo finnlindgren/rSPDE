@@ -45,71 +45,71 @@ set_prior <- function(prior, default_mean, default_precision, p = 1) {
 
 
 #' Space-Time Random Fields via SPDE Approximation
-#' 
-#' `rspde.spacetime` computes a Finite Element Method (FEM) approximation of a 
-#' Gaussian random field defined as the solution to the stochastic partial 
+#'
+#' `rspde.spacetime` computes a Finite Element Method (FEM) approximation of a
+#' Gaussian random field defined as the solution to the stochastic partial
 #' differential equation (SPDE):
 #' \deqn{d u + \gamma(\kappa^2 + \rho\cdot\nabla - \Delta)^\alpha u = \sigma dW_C}
-#' where \eqn{C} is a Whittle-Matérn covariance operator with smoothness parameter 
-#' \eqn{\beta} and range parameter \eqn{\kappa}. This function is designed to handle 
-#' space-time random fields using either 1D spatial models or higher-dimensional 
+#' where \eqn{C} is a Whittle-Matérn covariance operator with smoothness parameter
+#' \eqn{\beta} and range parameter \eqn{\kappa}. This function is designed to handle
+#' space-time random fields using either 1D spatial models or higher-dimensional
 #' FEM-based approaches.
-#' 
-#' @param mesh_space Spatial mesh for the FEM approximation, or a `metric_graph` 
+#'
+#' @param mesh_space Spatial mesh for the FEM approximation, or a `metric_graph`
 #' object for handling models on metric graphs.
 #' @param mesh_time Temporal mesh for the FEM approximation.
-#' @param space_loc A vector of spatial locations for mesh nodes in 1D spatial models. 
+#' @param space_loc A vector of spatial locations for mesh nodes in 1D spatial models.
 #' This should be provided when `mesh_space` is not specified.
-#' @param time_loc A vector of temporal locations for mesh nodes. This should be 
+#' @param time_loc A vector of temporal locations for mesh nodes. This should be
 #' provided when `mesh_time` is not specified.
-#' @param drift Logical value indicating whether the drift term should be included. 
+#' @param drift Logical value indicating whether the drift term should be included.
 #' If `FALSE`, the drift coefficient \eqn{\rho} is set to zero.
 #' @param alpha Integer smoothness parameter \eqn{\alpha}.
 #' @param beta Integer smoothness parameter \eqn{\beta}.
-#' @param prior.kappa A list specifying the prior for the range parameter \eqn{\kappa}. 
-#' This list may contain two elements: `mean` and/or `precision`, both of which must 
-#' be numeric scalars (numeric vectors of length 1). The precision refers to the prior 
+#' @param prior.kappa A list specifying the prior for the range parameter \eqn{\kappa}.
+#' This list may contain two elements: `mean` and/or `precision`, both of which must
+#' be numeric scalars (numeric vectors of length 1). The precision refers to the prior
 #' on \eqn{\log(\kappa)}. If `NULL`, default values will be used.
-#' @param prior.sigma A list specifying the prior for the variance parameter \eqn{\sigma}. 
-#' This list may contain two elements: `mean` and/or `precision`, both of which must 
-#' be numeric scalars. The precision refers to the prior on \eqn{\log(\sigma)}. If `NULL`, 
+#' @param prior.sigma A list specifying the prior for the variance parameter \eqn{\sigma}.
+#' This list may contain two elements: `mean` and/or `precision`, both of which must
+#' be numeric scalars. The precision refers to the prior on \eqn{\log(\sigma)}. If `NULL`,
 #' default values will be used.
-#' @param prior.rho A list specifying the prior for the drift coefficient \eqn{\rho}. 
-#' This list may contain two elements: `mean` and/or `precision`, both of which must 
-#' be numeric scalars if dimension is one, and numeric vectors of length 2 if dimension is 2. 
-#' The precision applies directly to \eqn{\rho} without log transformation. 
+#' @param prior.rho A list specifying the prior for the drift coefficient \eqn{\rho}.
+#' This list may contain two elements: `mean` and/or `precision`, both of which must
+#' be numeric scalars if dimension is one, and numeric vectors of length 2 if dimension is 2.
+#' The precision applies directly to \eqn{\rho} without log transformation.
 #' If `NULL`, default values will be used. Will not be used if `drift = FALSE`.
-#' @param prior.gamma A list specifying the prior for the weight \eqn{\gamma} in the SPDE 
-#' operator. This list may contain two elements: `mean` and/or `precision`, both of which 
-#' must be numeric scalars. The precision refers to the prior on \eqn{\log(\gamma)}. If `NULL`, 
+#' @param prior.gamma A list specifying the prior for the weight \eqn{\gamma} in the SPDE
+#' operator. This list may contain two elements: `mean` and/or `precision`, both of which
+#' must be numeric scalars. The precision refers to the prior on \eqn{\log(\gamma)}. If `NULL`,
 #' default values will be used.
-#' @param prior.precision A precision matrix for \eqn{\log(\kappa), \log(\sigma), \log(\gamma), \rho}. This matrix replaces the precision 
+#' @param prior.precision A precision matrix for \eqn{\log(\kappa), \log(\sigma), \log(\gamma), \rho}. This matrix replaces the precision
 #' element from `prior.kappa`, `prior.sigma`, `prior.gamma`, and `prior.rho` respectively. For dimension 1 `prior.precision` must be a 4x4 matrix. For dimension 2, \eqn{\rho} is a vector of length 2, so in this case `prior.precision` must be a 5x5 matrix. If `NULL`, a diagonal precision matrix with default values will be used.
-#' @param shared_lib String specifying which shared library to use for the Cgeneric 
-#' implementation. Options are "detect", "INLA", or "rSPDE". You may also specify the 
+#' @param shared_lib String specifying which shared library to use for the Cgeneric
+#' implementation. Options are "detect", "INLA", or "rSPDE". You may also specify the
 #' direct path to a .so (or .dll) file.
 #' @param debug Logical value indicating whether to enable INLA debug mode.
 #' @param ... Additional arguments passed internally for configuration purposes.
-#' @return An object of class `inla_rspde_spacetime` representing the FEM approximation of 
+#' @return An object of class `inla_rspde_spacetime` representing the FEM approximation of
 #' the space-time Gaussian random field.
 #' @export
-#' 
+#'
 #' @examples
 #' library(INLA)
 #' library(MetricGraph)
 #' graph <- metric_graph$new()
 #' graph$build_mesh(h = 0.1)
 #' graph$compute_fem()
-#' 
+#'
 #' # Define the time locations
 #' time_loc <- seq(from = 0, to = 10, length.out = 11)
-#' 
+#'
 #' # Create the model
-#' model <- rspde.spacetime(mesh_space = graph, 
-#'                          time_loc = time_loc, 
-#'                          alpha = 2, 
+#' model <- rspde.spacetime(mesh_space = graph,
+#'                          time_loc = time_loc,
+#'                          alpha = 2,
 #'                          beta = 1)
-#' 
+#'
 
 rspde.spacetime <- function(mesh_space = NULL,
                             mesh_time = NULL,
@@ -174,16 +174,16 @@ rspde.spacetime <- function(mesh_space = NULL,
     if (drift) {
       # Include prior.rho$precision if drift is TRUE
       prior.precision <- diag(c(
-        prior.kappa$precision, 
-        prior.sigma$precision, 
-        prior.gamma$precision, 
+        prior.kappa$precision,
+        prior.sigma$precision,
+        prior.gamma$precision,
         prior.rho$precision
       ))
     } else {
       # Exclude prior.rho$precision if drift is FALSE
       prior.precision <- diag(c(
-        prior.kappa$precision, 
-        prior.sigma$precision, 
+        prior.kappa$precision,
+        prior.sigma$precision,
         prior.gamma$precision
       ))
     }
@@ -233,18 +233,18 @@ rspde.spacetime <- function(mesh_space = NULL,
       drift = as.integer(drift),
       prior.precision = prior.precision
     ),
-    
+
     # Single-level lists, each element added separately
     setNames(op$Gtlist, paste0("Gtlist", seq_along(op$Gtlist))),
     setNames(op$Ctlist, paste0("Ctlist", seq_along(op$Ctlist))),
     setNames(op$B0list, paste0("B0list", seq_along(op$B0list))),
-    
+
     # Flattened two-level M2list
     unlist(lapply(seq_along(op$M2list), function(i) {
       c(
         # Add the length of each first-level M2list element
         setNames(list(length(op$M2list[[i]])), paste0("n_M2list_", i)),
-        
+
         # Add each second-level element with a unique name
         setNames(op$M2list[[i]], paste0("M2list", i, "_", seq_along(op$M2list[[i]])))
       )
@@ -267,7 +267,7 @@ rspde.spacetime <- function(mesh_space = NULL,
     model$mesh <- graph
   }
   model$time_mesh <- op$mesh_time
-  
+
   class(model) <- c("inla_rspde_spacetime", class(model))
 
   return(model)
@@ -304,7 +304,7 @@ bru_get_mapper.inla_rspde_spacetime <- function(model, ...) {
 #' @noRd
 bru_mapper.metric_graph <- function(mesh, ...) {
   mapper <- list(mesh = mesh)
-  bru_mapper_define(mapper, new_class = "bru_mapper_metric_graph")
+  inlabru::bru_mapper_define(mapper, new_class = "bru_mapper_metric_graph")
 }
 
 #' @noRd
@@ -320,7 +320,7 @@ ibm_values.bru_mapper_metric_graph <- function(mapper, ...) {
 #' @noRd
 ibm_jacobian.bru_mapper_metric_graph <- function(mapper, input, ...) {
   if (is.null(input)) {
-    return(Matrix::Matrix(0, 0, ibm_n(mapper)))
+    return(Matrix::Matrix(0, 0, inlabru::ibm_n(mapper)))
   }
   mapper[["mesh"]][["fem_basis"]](input)
 }
