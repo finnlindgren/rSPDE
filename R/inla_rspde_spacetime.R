@@ -261,12 +261,12 @@ rspde.spacetime <- function(mesh_space = NULL,
   model$prior.rho <- prior.rho
   model$d <- op$d
   model$prior.precision <- prior.precision
-  if(!is.null(mesh_space)){
-    model$mesh <- mesh_space
+  if(!is.null(op$mesh_space)){
+    model$mesh <- op$mesh_space
   } else{
     model$mesh <- graph
   }
-  model$time_mesh <- mesh_time
+  model$time_mesh <- op$mesh_time
   
   class(model) <- c("inla_rspde_spacetime", class(model))
 
@@ -282,32 +282,45 @@ rspde.spacetime <- function(mesh_space = NULL,
 #' @rdname bru_get_mapper.inla_rspde_spacetime
 #' @rawNamespace if (getRversion() >= "3.6.0") {
 #'   S3method(inlabru::bru_get_mapper, inla_rspde_spacetime)
-#'   S3method(inlabru::ibm_n, bru_mapper_inla_rspde_spacetime)
-#'   S3method(inlabru::ibm_values, bru_mapper_inla_rspde_spacetime)
-#'   S3method(inlabru::ibm_jacobian, bru_mapper_inla_rspde_spacetime)
+#'   S3method(inlabru::bru_mapper, metric_graph)
+#'   S3method(inlabru::ibm_n, bru_mapper_metric_graph)
+#'   S3method(inlabru::ibm_values, bru_mapper_metric_graph)
+#'   S3method(inlabru::ibm_jacobian, bru_mapper_metric_graph)
 #' }
 #'
 
 bru_get_mapper.inla_rspde_spacetime <- function(model, ...) {
-  mapper <- list(model = model)
-  inlabru::bru_mapper_define(mapper, new_class = "bru_mapper_inla_rspde_spacetime")
+  stopifnot(requireNamespace("inlabru"))
+  inlabru::bru_mapper_multi(list(
+    space = if(inherits(model[["mesh"]], c("fm_mesh_1d", "inla.mesh.1d"))){
+      inlabru::bru_mapper(model[["mesh"]], indexed = TRUE)
+    } else{
+      inlabru::bru_mapper(model[["mesh"]])
+    },
+    time = inlabru::bru_mapper(model[["time_mesh"]], indexed = TRUE)
+  ))
 }
 
-#' @param mapper A `bru_mapper_inla_rspde_spacetime` object
-#' @rdname bru_get_mapper.inla_rspde_spacetime
-ibm_n.bru_mapper_inla_rspde_spacetime <- function(mapper, ...) {
-  model <- mapper[["model"]]
-  return(model$f$n)
+#' @noRd
+bru_mapper.metric_graph <- function(mesh, ...) {
+  mapper <- list(mesh = mesh)
+  bru_mapper_define(mapper, new_class = "bru_mapper_metric_graph")
 }
-#' @rdname bru_get_mapper.inla_rspde_spacetime
-ibm_values.bru_mapper_inla_rspde_spacetime <- function(mapper, ...) {
-  seq_len(inlabru::ibm_n(mapper))
+
+#' @noRd
+ibm_n.bru_mapper_metric_graph <- function(mapper, ...) {
+  nrow(mapper[["mesh"]][["mesh"]][["VtE"]])
 }
-#' @param input The values for which to produce a mapping matrix
-#' @rdname bru_get_mapper.inla_rspde_spacetime
-ibm_jacobian.bru_mapper_inla_rspde_spacetime <- function(mapper, input, ...) {
-  model <- mapper[["model"]]
-  space <- input$space
-  time <- input$time
-  return(model$A(loc = space, time = time))
+
+#' @noRd
+ibm_values.bru_mapper_metric_graph <- function(mapper, ...) {
+  seq_len(nrow(mapper[["mesh"]][["mesh"]][["VtE"]]))
+}
+
+#' @noRd
+ibm_jacobian.bru_mapper_metric_graph <- function(mapper, input, ...) {
+  if (is.null(input)) {
+    return(Matrix::Matrix(0, 0, ibm_n(mapper)))
+  }
+  mapper[["mesh"]][["fem_basis"]](input)
 }
