@@ -197,7 +197,7 @@ st_bru <- rspde.spacetime(space_loc = s, time_loc = t, alpha = 1, beta=1)
 We now create the model component, which requires the user to pass the index as a list containing the elements `space` with the spatial indices and `time` with the temporal indices:
 
 ```{r}
-cmp <- y ~ 1 + field(list(space=space, time = time), model = st_bru)
+cmp <- y ~ -1 + Intercept(1) + field(list(space=space, time = time), model = st_bru)
 ```
 
 We are now in a position to fit the model:
@@ -205,7 +205,7 @@ We are now in a position to fit the model:
 ```{r}
 bru_fit <- bru(cmp, data = df,
     options = list(num.threads = "1:1")
-  )
+)
 ```
 
 Let us now compare the estimated results (the means of the parameters) with the true values:
@@ -339,7 +339,7 @@ df_bru <- data.frame(y = Y, coord_x = obs.loc$x, coord_y = obs.loc$y, time = obs
 
 Now, the component:
 ```{r}
-cmp <- y ~ 1 + field(list(space=cbind(coord_x, coord_y), 
+cmp <- y ~ -1 + Intercept(1) + field(list(space=cbind(coord_x, coord_y), 
                 time = time), model = st_bru_field)
 ```
 
