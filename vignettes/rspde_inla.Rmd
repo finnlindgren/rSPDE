@@ -363,7 +363,8 @@ rspde_fit <- inla(f.s,
   family = "Gamma", data = inla.stack.data(stk.dat),
   verbose = FALSE,
   control.inla = list(int.strategy = "eb"),
-  control.predictor = list(A = inla.stack.A(stk.dat), compute = TRUE)
+  control.predictor = list(A = inla.stack.A(stk.dat), compute = TRUE),
+  num.threads = "1:1"
 )
 ```
 
@@ -538,7 +539,8 @@ rspde_fitprd <- inla(f.s,
     return.marginals = FALSE,
     return.marginals.predictor = FALSE
   ),
-  control.inla = list(int.strategy = "eb")
+  control.inla = list(int.strategy = "eb"),
+  num.threads = "1:1"
 )
 ```
 
@@ -744,7 +746,8 @@ rspde_fit.rep <-
     data = inla.stack.data(st.dat.rep),
     family = "gaussian",
     control.predictor =
-      list(A = inla.stack.A(st.dat.rep))
+      list(A = inla.stack.A(st.dat.rep)),
+    num.threads = "1:1"
   )
 ```
 
@@ -836,7 +839,8 @@ rspde_fit_2 <- inla(f.s.2,
   family = "Gamma", data = inla.stack.data(stk.dat),
   verbose = FALSE,
   control.inla = list(int.strategy = "eb"),
-  control.predictor = list(A = inla.stack.A(stk.dat), compute = TRUE)
+  control.predictor = list(A = inla.stack.A(stk.dat), compute = TRUE),
+  num.threads = "1:1"
 )
 ```
 
@@ -929,7 +933,8 @@ rspde_fit_order_3 <- inla(f.s.3,
   family = "Gamma", data = inla.stack.data(stk.dat.3),
   verbose = FALSE,
   control.inla = list(int.strategy = "eb"),
-  control.predictor = list(A = inla.stack.A(stk.dat.3), compute = TRUE)
+  control.predictor = list(A = inla.stack.A(stk.dat.3), compute = TRUE),
+  num.threads = "1:1"
 )
 ```
 
@@ -1004,7 +1009,8 @@ rspde_fit_order_2 <- inla(f.s.2,
   family = "Gamma", data = inla.stack.data(stk.dat.2),
   verbose = FALSE,
   control.inla = list(int.strategy = "eb"),
-  control.predictor = list(A = inla.stack.A(stk.dat.2), compute = TRUE)
+  control.predictor = list(A = inla.stack.A(stk.dat.2), compute = TRUE),
+  num.threads = "1:1"
 )
 ```
 
@@ -1077,7 +1083,8 @@ rspde_fix <- inla(f.s.fix,
   family = "Gamma", data = inla.stack.data(stk.dat),
   verbose = FALSE,
   control.inla = list(int.strategy = "eb"),
-  control.predictor = list(A = inla.stack.A(stk.dat), compute = TRUE)
+  control.predictor = list(A = inla.stack.A(stk.dat), compute = TRUE),
+  num.threads = "1:1"
 )
 ```
 
@@ -1154,7 +1161,8 @@ rspde_fix_int_1 <- inla(f.s.fix.int.1,
   control.predictor = list(
     A = inla.stack.A(stk.dat.int),
     compute = TRUE
-  )
+  ),
+  num.threads = "1:1"
 )
 ```
 
@@ -1337,7 +1345,8 @@ rspde_fit_beta <- inla(f.s.beta,
   family = "Gamma", data = inla.stack.data(stk.dat),
   verbose = FALSE,
   control.inla = list(int.strategy = "eb"),
-  control.predictor = list(A = inla.stack.A(stk.dat), compute = TRUE)
+  control.predictor = list(A = inla.stack.A(stk.dat), compute = TRUE),
+  num.threads = "1:1"
 )
 ```
 
@@ -1402,7 +1411,8 @@ rspde_fit_order_3_start <- inla(f.s.3.start,
   control.predictor = list(
     A = inla.stack.A(stk.dat.3),
     compute = TRUE
-  )
+  ),
+  num.threads = "1:1"
 )
 ```
 
@@ -1438,7 +1448,8 @@ rspde_fit_order_1_brasil <- inla(f.s.brasil,
   family = "Gamma", data = inla.stack.data(stk.dat),
   verbose = FALSE,
   control.inla = list(int.strategy = "eb"),
-  control.predictor = list(A = inla.stack.A(stk.dat), compute = TRUE)
+  control.predictor = list(A = inla.stack.A(stk.dat), compute = TRUE),
+  num.threads = "1:1"
 )
 ```
 
@@ -1471,7 +1482,8 @@ rspde_fit_order_3_brasil <- inla(f.s.3,
   family = "Gamma", data = inla.stack.data(stk.dat.3),
   verbose = FALSE,
   control.inla = list(int.strategy = "eb"),
-  control.predictor = list(A = inla.stack.A(stk.dat.3), compute = TRUE)
+  control.predictor = list(A = inla.stack.A(stk.dat.3), compute = TRUE),
+  num.threads = "1:1"
 )
 ```
 

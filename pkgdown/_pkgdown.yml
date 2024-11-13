@@ -31,6 +31,8 @@ navbar:
         href: articles/rspde_base.html
       - text: Intrinsic models
         href: articles/intrinsic.html
+      - text: Anisotropic models
+        href: articles/anisotropic.html
       - text: Spatio-temporal models
         href: articles/spacetime.html
       - text: Rational approximations without finite element approximations
@@ -57,7 +59,9 @@ reference:
     contents:
     - rspde.matern
     - rspde.metric_graph
+    - rspde.spacetime
     - matern.operators
+    - matern2d.operators
     - spde.matern.operators    
     - fractional.operators
     - matern.rational
@@ -97,6 +101,11 @@ reference:
     - summary.CBrSPDEobj
     - update.CBrSPDEobj
     - precision.CBrSPDEobj
+    - predict.CBrSPDEobj2d
+    - simulate.CBrSPDEobj2d
+    - summary.CBrSPDEobj2d
+    - update.CBrSPDEobj2d
+    - precision.CBrSPDEobj2d
     - simulate.rSPDEobj1d
     - summary.rSPDEobj1d
     - update.rSPDEobj1d
@@ -123,6 +132,7 @@ reference:
     - cross_validation
     - group_predict
     - bru_get_mapper.inla_rspde
+    - bru_get_mapper.inla_rspde_spacetime
   - title: Finite element-related functions
     contents:
     - rSPDE.A1d

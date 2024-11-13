@@ -113,7 +113,7 @@ a terminal:
 git clone https://github.com/davidbolin/rSPDE.git
 ```
 
-You can also [download the source files](https://github.com/davidbolin/rSPDE/archive/refs/heads/devel.zip).
+You can also [download the source files](https://github.com/davidbolin/rSPDE/archive/refs/heads/devel-src.zip).
 
 Now, let us discuss the `Makefile`. The `Makefile` has the following base form:
 

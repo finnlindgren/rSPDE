@@ -55,7 +55,10 @@ points.}
 or \code{spacetime.operators()}. If \code{NULL}, simple linear regression will be performed.}
 
 \item{repl}{Vector indicating the replicate of each observation.
-If \code{NULL} it will assume there is only one replicate.}
+If \code{NULL} it will assume there is only one replicate. If the model is generated from graphs from
+\code{metric_graph} class and \code{use_data_from_graph} is \code{TRUE}, \code{repl} needs to be the name of the
+column inside the metric graph data that contains the replicate. If \code{NULL} it will assume there is only
+one replicate.}
 
 \item{which_repl}{Which replicates to use? If \code{NULL} all replicates will be used.}
 

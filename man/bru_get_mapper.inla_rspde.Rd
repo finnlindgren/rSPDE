@@ -16,7 +16,7 @@ ibm_values.bru_mapper_inla_rspde(mapper, ...)
 ibm_jacobian.bru_mapper_inla_rspde(mapper, input, ...)
 }
 \arguments{
-\item{model}{An \code{inla_rspde} for which to construct or extract a mapper}
+\item{model}{An \code{inla_rspde} object for which to construct or extract a mapper}
 
 \item{\dots}{Arguments passed on to other methods}
 

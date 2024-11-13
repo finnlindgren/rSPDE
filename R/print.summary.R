@@ -216,6 +216,69 @@ print.CBrSPDEobj <- function(x, ...) {
 }
 
 
+
+#' Summarise CBrSPDEobj2d objects
+#'
+#' Summary method for class "CBrSPDEobj2d"
+#'
+#' @param object an object of class "CBrSPDEobj2d", usually, a result of a call
+#'   to [matern2d.operators()].
+#' @param ... further arguments passed to or from other methods.
+#' @export
+#' @method summary CBrSPDEobj2d
+#' @examples
+#' library(fmesher)
+#' n_loc <- 2000
+#' loc_2d_mesh <- matrix(runif(n_loc * 2), n_loc, 2)
+#' mesh_2d <- fm_mesh_2d(loc = loc_2d_mesh, cutoff = 0.03, max.edge = c(0.1, 0.5))
+#' op <- matern2d.operators(mesh = mesh_2d)
+#' op
+summary.CBrSPDEobj2d <- function(object, ...) {
+    out <- list()
+    class(out) <- "summary.CBrSPDEobj2d"
+    out$type <- object$type
+    out$hx <- object$hx
+    out$hy <- object$hy
+    out$hxy <- object$hxy
+    out$sigma <- object$sigma
+    out$nu <- object$nu
+    out$m <- object$m
+    out$stationary <- object$stationary
+    out$n <- dim(object$C)[1]
+    out[["type_rational_approximation"]] <-
+        object[["type_rational_approximation"]]
+    return(out)
+}
+
+#' @param x an object of class "summary.CBrSPDEobj2d", usually, a result of a call
+#'   to [summary.CBrSPDEobj2d()].
+#' @export
+#' @method print summary.CBrSPDEobj2d
+#' @rdname summary.CBrSPDEobj2d
+print.summary.CBrSPDEobj2d <- function(x, ...) {
+    cat("Type of approximation: ", x$type, "\n")
+    cat(
+        "Type of rational approximation: ",
+        x[["type_rational_approximation"]], "\n"
+    )
+
+    cat("Parameters of covariance function: sigma = ",
+        x$sigma, ", hx = ", x$hx, ", hy = ", x$hy, 
+        ", hxy = ", x$hxy, ", nu = ", x$nu, "\n"
+            )
+        
+    cat("Order or rational approximation: ", x$m, "\n")
+    cat("Size of discrete operators: ", x$n, " x ", x$n, "\n")
+}
+
+#' @export
+#' @method print CBrSPDEobj2d
+#' @rdname summary.CBrSPDEobj2d
+print.CBrSPDEobj2d <- function(x, ...) {
+    print.summary.CBrSPDEobj2d(summary(x))
+}
+
+
 #' @name create_summary_from_density
 #' @title Creates a summary from a density data frame
 #' @description Auxiliar function to create summaries from density data drames
