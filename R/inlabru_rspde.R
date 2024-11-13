@@ -49,14 +49,13 @@
 #'     y = y, x1 = loc_2d_mesh[, 1],
 #'     x2 = loc_2d_mesh[, 2]
 #'   )
-#'   coordinates(data_df) <- c("x1", "x2")
 #'   rspde_model <- rspde.matern(
 #'     mesh = mesh_2d,
 #'     nu_upper_bound = 2
 #'   )
 #'
 #'   cmp <- y ~ Intercept(1) +
-#'     field(coordinates, model = rspde_model)
+#'     field(cbind(x1,x2), model = rspde_model)
 #'
 #'
 #'   rspde_fit <- bru(cmp, data = data_df)

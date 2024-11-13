@@ -303,23 +303,19 @@ points(coords[, 1], coords[, 2], pch = 19, cex = 0.5, col = "red")
 ```
 
 ```{r}
+library(sf)
 #Create the rspde model object
 rspde_model <- rspde.matern(mesh = prmesh)
 
 #Create the data.frame
 prdata <- data.frame(long = coords[,1], lat = coords[,2], 
                         seaDist = inla.group(seaDist), y = Y)
-coordinates(prdata) <- c("long","lat")
                       
+prdata <- st_as_sf(prdata, coords = c("long", "lat"), crs = 4326)                      
 #Create the component
 
-# The following synthax is available for inlabru version 2.5.3.9002 and above:
 cmp <- y ~ Intercept(1) + distSea(seaDist, model="rw1") +
-field(coordinates, model = rspde_model)
-
-# For inlabru version 2.5.3 one should use:
-cmp <- y ~ Intercept(1) + distSea(seaDist, model="rw1") +
-field(coordinates, model = rspde_model)
+field(geometry, model = rspde_model)
 
 # Fit the model
   
@@ -359,32 +355,31 @@ seaDist.prd <- apply(spDists(coord.prd,
     PRborder[1034:1078, ], longlat = TRUE), 1, min)
 
 # Build the prediction data.frame()
-coord.prd.df <- data.frame(x1 = coord.prd[,1],
-                            x2 = coord.prd[,2])
-coordinates(coord.prd.df) <- c("x1", "x2")
+coord.prd.df <- data.frame(long = coord.prd[,1],
+                            lat = coord.prd[,2])
+
 coord.prd.df$seaDist <- seaDist.prd
+
+coord.prd.df <- st_as_sf(coord.prd.df, coords = c("long", "lat"), 
+                        crs = 4326)
 
 # Obtain prediction at the locations
 pred_obs <- predict(rspde_fit, coord.prd.df, 
         ~exp(Intercept + field + distSea))
-
-# Prepare the plotting data.frame()
-pred_df <- pred_obs@data
-pred_df <- cbind(pred_df, pred_obs@coords)
 ```
 
 Finally, we plot the results. First the predicted mean:
 
-```{r}
-ggplot(pred_df, aes(x = x1, y = x2, fill = mean)) +
-  geom_raster() +
+```{r, warning=FALSE}
+ggplot() + gg(pred_obs, geom = "tile", 
+          aes(fill = mean)) +
   scale_fill_viridis()
 ```
 
 Then, the std. deviations:
 
-```{r}
-ggplot(pred_df, aes(x = x1, y = x2, fill = sd)) +
+```{r, warning=FALSE}
+ggplot() + gg(pred_obs, geom = "tile", aes(fill = sd)) +
   geom_raster() + scale_fill_viridis()
 ```
 

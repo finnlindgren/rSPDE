@@ -235,9 +235,10 @@ In place of a `inla.stack`, we can set up a `data.frame()` to use [`inlabru`](ht
 reader to vignettes in https://inlabru-org.github.io/inlabru/index.html for further details.
 
 ```{r}
+library(sf)
 prdata <- data.frame(long = coords[,1], lat = coords[,2], 
                         seaDist = inla.group(seaDist), y = Y)
-coordinates(prdata) <- c("long","lat")
+prdata <- st_as_sf(prdata, coords = c("long", "lat"), crs = 4326)
 ```
 
 #### Setting up the rSPDE model
@@ -272,7 +273,7 @@ We will fit it in `inlabru`'s  style:
 
 ```{r create_formula, message=FALSE}
 cmp <- y ~ Intercept(1) + distSea(seaDist, model="rw1") +
-field(coordinates, model = rspde_model)
+field(geometry, model = rspde_model)
 ```
 
 To fit the model we simply use the `bru()` function:
@@ -392,7 +393,8 @@ Let us now create a `data.frame()` of the coordinates:
 ```{r}
 coord.prd.df <- data.frame(x1 = coord.prd[,1],
                             x2 = coord.prd[,2])
-coordinates(coord.prd.df) <- c("x1", "x2")
+coord.prd.df <- st_as_sf(coord.prd.df, coords = c("x1", "x2"), 
+                  crs = 4326)
 ```
 
 Since we are using distance to the sea as a covariate, we also have to calculate this covariate for the prediction locations.
@@ -411,26 +413,22 @@ pred_obs <- predict(rspde_fit, coord.prd.df,
         ~exp(Intercept + field + distSea))
 ```
 
-Let us now build the data frame with the results:
-
-```{r}
-pred_df <- pred_obs@data
-pred_df <- cbind(pred_df, pred_obs@coords)
-```
-
 Finally, we plot the results. First the predicted mean:
 
-```{r, echo=TRUE, fig.align='center'}
-ggplot(pred_df, aes(x = x1, y = x2, fill = mean)) +
+```{r, echo=TRUE, fig.align='center', warning=FALSE}
+ggplot() + gg(pred_obs, geom = "tile",
+    aes(fill = mean)) +
   geom_raster() +
   scale_fill_viridis()
 ```
 
 Then, the std. deviations:
 
-```{r plot_pred_sd_bru, fig.align='center', echo=TRUE}
-ggplot(pred_df, aes(x = x1, y = x2, fill = sd)) +
-  geom_raster() + scale_fill_viridis()
+```{r plot_pred_sd_bru, fig.align='center', echo=TRUE, warning=FALSE}
+ggplot() + gg(pred_obs, geom = "tile",
+    aes(fill = sd)) +
+  geom_raster() +
+  scale_fill_viridis()
 ```
 
 ## An example with replicates
@@ -571,7 +569,7 @@ Let us now create the `data.frame()` and the vector with the replicates indexes:
 ```{r}
 rep.df <- data.frame(y = y, x1 = rep(loc_2d_mesh[,1], n.rep),
                       x2 = rep(loc_2d_mesh[,2], n.rep))
-coordinates(rep.df) <- c("x1", "x2")
+rep.df <- st_as_sf(rep.df, coords = c("x1", "x2"))
 repl <- rep(1:n.rep, each=m)
 ```
 
@@ -582,7 +580,7 @@ meaningless model.
 
 ```{r, message=FALSE, warning=FALSE}
 cmp.rep <-
-  y ~ -1 + field(coordinates,
+  y ~ -1 + field(geometry,
     model = rspde_model.rep,
     replicate = repl
   )
@@ -755,7 +753,7 @@ Let us now create the `data.frame()` and the vector with the replicates indexes:
 ```{r}
 nonstat_df <- data.frame(y = y, x1 = loc_mesh[,1],
                       x2 = loc_mesh[,2])
-coordinates(nonstat_df) <- c("x1", "x2")
+nonstat_df <- st_as_sf(nonstat_df, coords = c("x1", "x2"))
 ```
 
 Let us create the component and fit. It is extremely important
@@ -765,7 +763,7 @@ meaningless model.
 
 ```{r, message=FALSE, warning=FALSE}
 cmp_nonstat <-
-  y ~ -1 + field(coordinates,
+  y ~ -1 + field(geometry,
     model = rspde_model_nonstat
   )
 
@@ -831,7 +829,7 @@ Then, `inlabru`'s component:
 
 ```{r}
 cmp_stat <-
-  y ~ -1 + field(coordinates,
+  y ~ -1 + field(geometry,
     model = rspde_model_stat
   )
 ```
