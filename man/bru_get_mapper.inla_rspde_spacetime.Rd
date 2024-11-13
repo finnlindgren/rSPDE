@@ -2,27 +2,14 @@
 % Please edit documentation in R/inla_rspde_spacetime.R
 \name{bru_get_mapper.inla_rspde_spacetime}
 \alias{bru_get_mapper.inla_rspde_spacetime}
-\alias{ibm_n.bru_mapper_inla_rspde_spacetime}
-\alias{ibm_values.bru_mapper_inla_rspde_spacetime}
-\alias{ibm_jacobian.bru_mapper_inla_rspde_spacetime}
 \title{rSPDE space time inlabru mapper}
 \usage{
-bru_get_mapper.inla_rspde_spacetime(model, ...)
-
-ibm_n.bru_mapper_inla_rspde_spacetime(mapper, ...)
-
-ibm_values.bru_mapper_inla_rspde_spacetime(mapper, ...)
-
-ibm_jacobian.bru_mapper_inla_rspde_spacetime(mapper, input, ...)
+\method{bru_get_mapper}{inla_rspde_spacetime}(model, ...)
 }
 \arguments{
 \item{model}{An \code{inla_rspde_spacetime} object for which to construct or extract a mapper}
 
 \item{\dots}{Arguments passed on to other methods}
-
-\item{mapper}{A \code{bru_mapper_inla_rspde_spacetime} object}
-
-\item{input}{The values for which to produce a mapping matrix}
 }
 \description{
 rSPDE space time inlabru mapper
