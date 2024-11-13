@@ -224,7 +224,7 @@ rspde.matern <- function(mesh,
     if (!integer_alpha) {
       if (rspde.order > 0) {
         n_m <- rspde.order
-        coeff <- interp_rational_coefficients(rspde.order, 
+        coeff <- interp_rational_coefficients(rspde.order,
                                               type_rational_approx = type.rational.approx,
                                               alpha = alpha)
         r <- coeff$r
@@ -1443,8 +1443,8 @@ rspde.make.index <- function(name, n.spde = NULL, n.group = 1,
 #' @return An 'INLA' and 'inlabru' friendly list with the data.
 #' @export
 
-graph_data_rspde <- function(graph_rspde, name = "field", 
-                             repl = NULL, 
+graph_data_rspde <- function(graph_rspde, name = "field",
+                             repl = NULL,
                              repl_col = NULL,
                              group = NULL,
                              group_col = NULL,
@@ -1485,7 +1485,7 @@ graph_data_rspde <- function(graph_rspde, name = "field",
   if (is.null((graph_tmp$.__enclos_env__$private$data))) {
     stop("The graph has no data!")
   }
-  
+
   if(is.null(repl) && !is.null(repl_col)){
     stop("If repl_col is provided, repl must be provided.")
   }
@@ -1577,7 +1577,7 @@ graph_data_rspde <- function(graph_rspde, name = "field",
   if(!is.null(graph_rspde$rspde.order) && !bru){
 
     ret[["basis"]] <- Matrix::Matrix(nrow = 0, ncol = 0)
-     
+
     ret[["index"]] <- rspde.make.index(mesh = graph_tmp, n.group = n.group, n.repl = n.repl, nu = nu, dim = 1, rspde.order = rspde.order, name = name)
 
     loc_basis <- cbind(ret[["data"]][[".edge_number"]], ret[["data"]][[".distance_on_edge"]])
@@ -1620,7 +1620,7 @@ select_repl_group <- function(data_list, repl, repl_col, group, group_col) {
     stop("If you specify repl, you need to specify repl_col!")
   }
   if(is.null(repl_col) && is.null(group_col)){
-    return(data_list)    
+    return(data_list)
   }
   if (!is.null(group)) {
     grp <- data_list[[group_col]]
@@ -2621,10 +2621,14 @@ rspde.mesh.project.inla.mesh <- function(mesh, loc = NULL,
   smorg <- fmesher::fm_bary(mesh, loc = mesh$loc)
   ti <- matrix(0L, nrow(loc), 1)
   b <- matrix(0, nrow(loc), 3)
-  ti[jj, 1L] <- smorg$p2m.t
-  b[jj, ] <- smorg$p2m.b
-  ok <- (ti[, 1L] > 0L)
-  ti[ti[, 1L] == 0L, 1L] <- NA
+  if (utils::packageVersion("fmesher") <= "0.2.0.9000") {
+    ti[jj, 1L] <- as.vector(smorg$t)
+    b[jj, ] <- smorg$bary
+  } else {
+    ti[jj, 1L] <- smorg$index
+    b[jj, ] <- smorg$where
+  }
+  ok <- !is.na(ti[, 1L])
   ii <- which(ok)
   A <- (sparseMatrix(dims = c(nrow(loc), mesh$n), i = rep(
     ii,
@@ -2650,6 +2654,8 @@ rspde.mesh.project.inla.mesh <- function(mesh, loc = NULL,
     Abar <- kronecker(matrix(1, 1, rspde.order + 1), A)
   }
 
+  # Note: this format is incompatible with fm_evaluator for
+  # fmesher >= 0.2.0.9001 w.r.t. to and bary
   list(t = ti, bary = b, A = Abar, ok = ok)
 }
 
