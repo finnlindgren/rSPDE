@@ -1622,21 +1622,21 @@ spde.matern.operators <- function(kappa = NULL,
 #' of a stationary Gaussian random fields on \eqn{R^d} with a Matern covariance
 #' function
 #' \deqn{C(h) = \frac{\sigma^2}{2^{\nu-1}\Gamma(\nu)}(\sqrt{h^T H^{-1}h})^\nu K_\nu(\sqrt{h^T H^{-1}h})},
-#' based on a SPDE representation of the form 
+#' based on a SPDE representation of the form
 #' \deqn{(I - \nabla\cdot(H\nabla))^{(\nu+1)/2}u = c\sigma W},
-#' where $c>0$ is a constant. The matrix \eqn{H} is defined as 
+#' where $c>0$ is a constant. The matrix \eqn{H} is defined as
 #' \deqn{\begin{bmatrix}
 #' h_x^2 & h_xh_yh_{xy} \\
-#' h_xh_yh_{xy} & h_y^2 
+#' h_xh_yh_{xy} & h_y^2
 #' \end{bmatrix}}
 #'
 #' @param hx Parameter in the H matrix.
 #' @param hy Parameter in the H matrix.
 #' @param hxy Parameter in the H matrix.
-#' @param sigma standard deviation parameter. 
+#' @param sigma standard deviation parameter.
 #' @param nu Smoothness parameter.
-#' @param mesh An `fmesher` mesh. 
-#' @param fem Optional precomputed FEM matrices. 
+#' @param mesh An `fmesher` mesh.
+#' @param fem Optional precomputed FEM matrices.
 #' @param m The order of the rational approximation, which needs to be a
 #' positive integer. The default value is 1.
 #' @param type_rational_approximation Which type of rational
@@ -1667,83 +1667,83 @@ matern2d.operators <- function(hx = NULL,
                                  "chebfun",
                                  "brasil", "chebfunLB"
                              )) {
-    
+
     if (is.null(mesh)) {
         stop("No mesh provided!")
     } else {
-        if (!inherits(mesh, c("inla.mesh"))) {
+        if (!inherits(mesh, c("fm_mesh_2d"))) {
             stop("The mesh should be created using INLA or fmesher!")
         }
-        
+
         d <- get_inla_mesh_dimension(inla_mesh = mesh)
         if(d != 2) {
             stop("Only 2d domains supported")
         }
     }
-    
+
     type_rational_approximation <- type_rational_approximation[[1]]
-    
+
     if(is.null(nu)) {
         nu <- 1
     } else {
-        nu <- rspde_check_user_input(nu, "nu", 0) 
+        nu <- rspde_check_user_input(nu, "nu", 0)
     }
     alpha <- nu + 1
-    
+
     if(is.null(sigma)) {
         sigma <- 1
     } else {
-        sigma <- rspde_check_user_input(sigma, "sigma", 0) 
+        sigma <- rspde_check_user_input(sigma, "sigma", 0)
     }
-    
-    
-    
+
+
+
     if (is.null(hx) || is.null(hy) || is.null(hxy)) {
-        mesh.range <- max(c(diff(range(mesh$loc[,1])), 
-                            diff(range(mesh$loc[, 2])), 
+        mesh.range <- max(c(diff(range(mesh$loc[,1])),
+                            diff(range(mesh$loc[, 2])),
                             diff(range(mesh$loc[,3]))))
-        
+
         hxy <- 0
         hx <- hy <- 0.2*mesh.range
     } else {
-        hx <- rspde_check_user_input(hx, "hx", 0) 
+        hx <- rspde_check_user_input(hx, "hx", 0)
         hy <- rspde_check_user_input(hy, "hy", 0)
         hxy <- rspde_check_user_input(hxy, "hxy", -1)
         if(hxy>1) {
             stop("hxy must be in (-1,1)")
         }
     }
-        
+
     tau <- sqrt(gamma(alpha-1) / (gamma(alpha) * 4 * pi * sigma^2))
     tau <- tau / sqrt(hx*hy*sqrt(1-hxy^2))
-    
+
     m_alpha <- floor(alpha)
     m_order <- m_alpha + 1
     if(is.null(fem)) {
-        fem <- rSPDE.fem2d(P = mesh$loc[,1:2], FV = mesh$graph$tv)    
+        fem <- rSPDE.fem2d(P = mesh$loc[,1:2], FV = mesh$graph$tv)
     }
-    
+
     C <- Matrix::Diagonal(dim(fem$C)[1], rowSums(fem$C))
     Ci <- Matrix::Diagonal(dim(C)[1], 1 / rowSums(C))
-    
+
     L <- C + hx^2*fem$Hxx + hy^2*fem$Hyy + hx*hy*hxy*(fem$Hxy + t(fem$Hxy))
-    
+
     CiL <- Ci %*% L
-    
+
     if (alpha %% 1 == 0) {
-        Q <- L 
+        Q <- L
         if (alpha > 1) {
             for (k in 1:(alpha - 1)) {
                 Q <- Q %*% CiL
             }
         }
-            
+
         Q <- tau^2 * Q
     } else if (m > 0) {
-        Q <- CBrSPDE.L.precision(L = L, tau = tau, 
+        Q <- CBrSPDE.L.precision(L = L, tau = tau,
                                  C = C,
                                  beta = alpha / 2,
-                                 rspde.order = m, 
+                                 rspde.order = m,
                                  scale_factor = 1,
                                  only_fractional = FALSE,
                                  type_rational_approx = type_rational_approximation)
@@ -1751,7 +1751,7 @@ matern2d.operators <- function(hx = NULL,
     } else {
         stop("m > 0 required")
     }
-    
+
     ## output
     out <- list(hx = hx,
                 hy = hy,
@@ -1760,7 +1760,7 @@ matern2d.operators <- function(hx = NULL,
                 alpha = alpha,
                 sigma = sigma,
                 m = m,
-                Q = Q, 
+                Q = Q,
                 type_rational_approximation = type_rational_approximation,
                 stationary = TRUE,
                 type = "Covariance-Based aniostropic Matern SPDE Approximation",
@@ -1768,7 +1768,7 @@ matern2d.operators <- function(hx = NULL,
                 fem = fem,
                 d = 2,
                 has_graph = FALSE)
-    
+
     out$make_A <- function(loc) {
         A <- fm_basis(x = mesh, loc = loc)
         if(out$alpha %% 1 == 0) {
@@ -1777,7 +1777,7 @@ matern2d.operators <- function(hx = NULL,
             return(kronecker(matrix(1, ncol = m + 1), A))
         }
     }
-    
+
     out$cov_function_mesh <- function(p) {
         v <- t(out$make_A(loc = p))
         A <- Matrix::Diagonal(dim(fem$C)[1])
@@ -1786,7 +1786,7 @@ matern2d.operators <- function(hx = NULL,
         }
         return((A) %*% solve(out$Q, v))
     }
-        
+
     out$covariance_mesh <- function() {
         A <- Matrix::Diagonal(dim(C)[1])
         if (out$alpha %% 1 == 0) {
@@ -1796,64 +1796,64 @@ matern2d.operators <- function(hx = NULL,
             return((A_bar) %*% solve(out$Q, t(A_bar)))
         }
     }
-    
+
     class(out) <- "CBrSPDEobj2d"
-    
+
     return(out)
 }
 
 #' @noRd
-CBrSPDE.L.precision <- function(L, tau = 1, 
-                        rspde.order, 
+CBrSPDE.L.precision <- function(L, tau = 1,
+                        rspde.order,
                         C,
                         beta,
-                        only_fractional = FALSE, 
+                        only_fractional = FALSE,
                         scale_factor = 1,
                         type_rational_approx = "chebfun") {
-    
+
     Ci <- Matrix::Diagonal(dim(C)[1], 1 / rowSums(C))
     n_m <- rspde.order
-    
+
     mt <- get_rational_coefficients(n_m, type_rational_approx)
-    
+
     m_alpha <- floor(2 * beta)
-    
+
     row_nu <- round(1000 * cut_decimals(2 * beta))
     r <- unlist(mt[row_nu, 2:(1 + rspde.order)])
     p <- unlist(mt[row_nu, (2 + rspde.order):(1 + 2 * rspde.order)])
     k <- unlist(mt[row_nu, 2 + 2 * rspde.order])
-    
+
     CiL <- Ci %*% L
     M <- Matrix::Diagonal(dim(L)[1])
     if (!only_fractional && m_alpha > 0) {
       for(i in 1:m_alpha) {
           M <- M %*% CiL
-      }  
-    } 
-    
+      }
+    }
+
     Q <- (L - p[1] * C) %*% M / r[1]
     if (length(r) > 1) {
         for (i in 2:length(r)) {
             Q <- bdiag(Q, (L - p[i] * C) %*% M / r[i])
         }
     }
-        
+
     # add k_part into Q
-    
+
     if(m_alpha > 0) {
         K <- C
         for(i in 1:m_alpha) {
             K <- K %*% CiL
-        }      
+        }
     } else {
-        K <- Ci    
+        K <- Ci
     }
-    
+
     K <- K / k
-    
+
     Q <- bdiag(Q, K)
-        
+
     Q <- Q * scale_factor^(2 * beta) * tau^2
-        
+
     return(Q)
 }

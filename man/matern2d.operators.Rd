@@ -51,7 +51,7 @@ based on a SPDE representation of the form
 where $c>0$ is a constant. The matrix \eqn{H} is defined as
 \deqn{\begin{bmatrix}
 h_x^2 & h_xh_yh_{xy} \\
-h_xh_yh_{xy} & h_y^2 
+h_xh_yh_{xy} & h_y^2
 \end{bmatrix}}
 }
 \examples{

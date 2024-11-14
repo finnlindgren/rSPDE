@@ -108,9 +108,9 @@ rSPDE.fem1d <- function(x) {
   )
   C[1, 1:2] <- c(d[2], d[2] / 2) / 3
   C[n, (n - 1):n] <- c(d[n] / 2, d[n]) / 3
-    
+
   Cd <- Diagonal(rowSums(C),n=n)
-  
+
   B <- bandSparse(n = n, m = n, k = c(-1, 0, 1),
                   diagonals = cbind(rep(0.5,n), rep(0,n), rep(-0.5,n)))
 
@@ -193,17 +193,17 @@ rSPDE.fem2d <- function(FV, P) {
     Gyy[dd, ] <- ddet * (Cyy[1, 1] * Mxx + Cyy[1, 2] * Mxy + Cyy[2, 1] * Myx + Cyy[2, 2] * Myy) / 2
     Gxy[dd, ] <- ddet * (Cxy[1, 1] * Mxx + Cxy[1, 2] * Mxy + Cxy[2, 1] * Myx + Cxy[2, 2] * Myy) / 2
     Gyx[dd, ] <- ddet * (Cyx[1, 1] * Mxx + Cyx[1, 2] * Mxy + Cyx[2, 1] * Myx + Cyx[2, 2] * Myy) / 2
-    
-    ab1 <- solve(matrix(c(xy[1,2]-xy[1,1], xy[1,3]-xy[1,1], 
+
+    ab1 <- solve(matrix(c(xy[1,2]-xy[1,1], xy[1,3]-xy[1,1],
                           xy[2,2]-xy[2,1], xy[2,3]-xy[2,1]),2,2),rep(1,2))
-    ab2 <- solve(matrix(c(xy[1,1]-xy[1,2], xy[1,3]-xy[1,2], 
+    ab2 <- solve(matrix(c(xy[1,1]-xy[1,2], xy[1,3]-xy[1,2],
                           xy[2,1]-xy[2,2], xy[2,3]-xy[2,2]),2,2),rep(1,2))
-    ab3 <- solve(matrix(c(xy[1,1]-xy[1,3], xy[1,2]-xy[1,3], 
+    ab3 <- solve(matrix(c(xy[1,1]-xy[1,3], xy[1,2]-xy[1,3],
                           xy[2,1]-xy[2,3], xy[2,2]-xy[2,3]),2,2),rep(1,2))
-    
+
     Bxz[dd, ] <-  -c(ab1[1], ab2[1], ab3[1]) * ddet/6
     Byz[dd, ] <-  -c(ab1[2], ab2[2], ab3[2]) * ddet/6
-    
+
   }
 
   G <- Matrix::sparseMatrix(
@@ -226,23 +226,23 @@ rSPDE.fem2d <- function(FV, P) {
     i = as.vector(Gi), j = as.vector(Gj),
     x = as.vector(Gyx), dims = c(nV, nV)
   )
-  
+
   Bx <- Matrix::sparseMatrix(
       i = as.vector(Gi), j = as.vector(Gj),
       x = as.vector(Bxz), dims = c(nV, nV)
   )
-  
+
   By <- Matrix::sparseMatrix(
       i = as.vector(Gi), j = as.vector(Gj),
       x = as.vector(Byz), dims = c(nV, nV)
   )
-  
+
   Ce <- Matrix::sparseMatrix(
     i = as.vector(Ci), j = as.vector(Cj),
     x = as.vector(Cz), dims = c(nV, nV)
   )
   C <- Matrix::Diagonal(n = nV, x = Matrix::colSums(Ce))
-  return(list(G = G, C = Ce, Cd = C, 
+  return(list(G = G, C = Ce, Cd = C,
               Hxx = Hxx, Hyy = Hyy, Hxy = Hxy, Hyx = Hyx,
               Bx = Bx, By = By))
 }
@@ -339,11 +339,11 @@ get.initial.values.rSPDE <- function(mesh = NULL, mesh.range = NULL,
   }
 
   if (!is.null(mesh)) {
-    if (!inherits(mesh, c("inla.mesh", "inla.mesh.1d"))) {
-      stop("The mesh should be created using INLA!")
+    if (!inherits(mesh, c("fm_mesh_1d", "fm_mesh_2d"))) {
+      stop("The mesh should be created using fmesher!")
     }
 
-    dim <- ifelse(inherits(mesh, "inla.mesh"), 2, 1)
+    dim <- fmesher::fm_manifold_dim(mesh)
   }
 
   if (!is.null(graph.obj)) {
@@ -521,16 +521,12 @@ check_class_inla_rspde <- function(model) {
 
 
 get_inla_mesh_dimension <- function(inla_mesh) {
-  cond1 <- inherits(inla_mesh, "inla.mesh.1d")
-  cond2 <- inherits(inla_mesh, "inla.mesh")
-  stopifnot(cond1 || cond2)
-  if (inla_mesh$manifold == "R1") {
-    d <- 1
-  } else if (inla_mesh$manifold %in% c("R2", "S2")) {
-    d <- 2
-  } else {
-    stop("The mesh should be from a flat manifold.")
+  if (!fmesher::fm_manifold(inla_mesh, c("R1", "S1", "R2", "S2"))) {
+    # FL : Is this actually required? E.g., is S1 not allowed, and other valid
+    # fmesher manifold types that support fm_fem() etc?
+    stop("The mesh should be from a flat or spherical manifold.")
   }
+  d <- fmesher::fm_manifold_dim(inla_mesh)
   return(d)
 }
 
@@ -637,12 +633,9 @@ get.sparsity.graph.rspde <- function(mesh = NULL,
                                      rspde.order = 2,
                                      dim = NULL) {
   if (!is.null(mesh)) {
-    stopifnot(inherits(mesh, "inla.mesh"))
-    if (mesh$manifold == "R1") {
-      dim <- 1
-    } else if (mesh$manifold == "R2") {
-      dim <- 2
-    } else {
+    dim <- fmesher::fm_manifold_dim(mesh)
+    if (!fmesher::fm_manifold(mesh, c("R1", "R2"))) {
+      # FL: Is this actually required? Is fm_fem() etc support not sufficient?
       stop("The mesh should be from a flat manifold.")
     }
   } else if (is.null(dim)) {
@@ -895,7 +888,7 @@ symmetric_part_matrix <- function(M) {
 
 
 #' @name get.roots
-#' @title Get roots of the polynomials used in the operator based rational 
+#' @title Get roots of the polynomials used in the operator based rational
 #' approximation.
 #' @description Get list with rational coefficients
 #' @param order order of the rational approximation
@@ -942,7 +935,7 @@ get.roots <- function(order, beta, type_interp = "linear") {
   }
   return(list(rb = rb, rc = rc, factor = factor))
 }
-    
+
 #' @name get_rational_coefficients
 #' @title Get matrix with rational coefficients
 #' @description Get matrix with rational coefficients
@@ -968,23 +961,23 @@ get_rational_coefficients <- function(order, type_rational_approx) {
 
 #' @name interp_rational_coefficients
 #' @title Get list with interpolated rational coefficients
-#' @description Get list with interpolated rational coefficients for specific 
+#' @description Get list with interpolated rational coefficients for specific
 #' value of alpha.
 #' @param order order of the rational approximation
 #' @param type_rational_approx Type of the rational
 #' approximation. Options are "chebfun", "brasil"
 #' and "chebfunLB"
-#' @param type_interp Type of interpolation. Options are "linear" 
+#' @param type_interp Type of interpolation. Options are "linear"
 #' (linear interpolation), "log" (log-linear interpolation), "spline" (spline
 #' interpolation) and "logspline" (log-spline interpolation).
-#' @param alpha Value of alpha for the coefficients. 
+#' @param alpha Value of alpha for the coefficients.
 #' @return A list with rational approximations.
 #' @noRd
-interp_rational_coefficients <- function(order, 
+interp_rational_coefficients <- function(order,
                                          type_rational_approx,
-                                         type_interp = "spline", 
+                                         type_interp = "spline",
                                          alpha){
-    mt <- get_rational_coefficients(order = order, 
+    mt <- get_rational_coefficients(order = order,
                                     type_rational_approx=type_rational_approx)
     alpha <- cut_decimals(alpha)
     if(type_interp == "linear"){
@@ -994,7 +987,7 @@ interp_rational_coefficients <- function(order,
         p = sapply(1:order, function(i) {
             approx(mt$alpha, mt[[paste0("p", i)]], alpha)$y
         })
-        k = approx(mt$alpha, mt$k, cut_decimals(alpha))$y    
+        k = approx(mt$alpha, mt$k, cut_decimals(alpha))$y
     } else if (type_interp == "log"){
         r = sapply(1:order, function(i) {
             exp(approx(mt$alpha, log(mt[[paste0("r", i)]]), alpha)$y)
@@ -1010,7 +1003,7 @@ interp_rational_coefficients <- function(order,
         p = sapply(1:order, function(i) {
             spline(mt$alpha, mt[[paste0("p", i)]], xout = alpha)$y
         })
-        k = spline(mt$alpha, mt$k, xout = alpha)$y    
+        k = spline(mt$alpha, mt$k, xout = alpha)$y
     } else if(type_interp == "logspline") {
         r = sapply(1:order, function(i) {
             exp(spline(mt$alpha, log(mt[[paste0("r", i)]]), xout = alpha)$y)
@@ -1379,12 +1372,12 @@ get_parameters_rSPDE <- function(
     d = NULL,
     n.spde = NULL) {
   if (!is.null(mesh)) {
-    if (!inherits(mesh, c("inla.mesh", "inla.mesh.1d"))) {
-      stop("The mesh should be created using INLA!")
+    if (!inherits(mesh, c("fm_mesh_1d", "fm_mesh_2d"))) {
+      stop("The mesh should be created using fmesher!")
     }
 
-    d <- ifelse(inherits(mesh, "inla.mesh"), 2, 1)
-    n.spde <- ifelse(d == 2, mesh$n, mesh$m)
+    d <- fmesher::fm_manifold_dim(mesh)
+    n.spde <- fmesher::fm_dof(mesh)
   } else {
     if (is.null(d)) {
       stop("If you do not provide the mesh, you must provide the dimension!")
@@ -1973,7 +1966,7 @@ check_packages <- function(packages, func) {
     }
 }
 
-#' @noRd 
+#' @noRd
 # Get appropriate shared library
 get_shared_library <- function(shared_lib) {
   if (shared_lib == "INLA") {
