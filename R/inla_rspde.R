@@ -176,7 +176,7 @@ rspde.matern <- function(mesh,
     }
   }
 
-  if (inherits(mesh, c("inla.mesh", "inla.mesh.1d"))) {
+  if (inherits(mesh, c("fm_mesh_1d", "fm_mesh_2d"))) {
     d <- get_inla_mesh_dimension(mesh)
   } else if (!is.null(mesh$d)) {
     d <- mesh$d
@@ -355,7 +355,7 @@ rspde.matern <- function(mesh,
 
   ### STATIONARY PART
   if (stationary) {
-    if (inherits(mesh, c("inla.mesh", "inla.mesh.1d"))) {
+    if (inherits(mesh, c("fm_mesh_1d", "fm_mesh_2d"))) {
       if (integer_alpha) {
         integer.nu <- TRUE
         if (d == 1) {
@@ -682,7 +682,7 @@ rspde.matern <- function(mesh,
   } else {
     ### NONSTATIONARY PART
 
-    if (inherits(mesh, c("inla.mesh", "inla.mesh.1d"))) {
+    if (inherits(mesh, c("fm_mesh_1d", "fm_mesh_2d"))) {
       if (integer_alpha) {
         integer.nu <- TRUE
         if (d == 1) {
@@ -947,8 +947,8 @@ spde.make.A <- function(mesh = NULL,
                         n.group = NULL,
                         n.repl = NULL) {
   if (!is.null(mesh)) {
-    cond1 <- inherits(mesh, "inla.mesh.1d")
-    cond2 <- inherits(mesh, "inla.mesh")
+    cond1 <- inherits(mesh, "fm_mesh_1d")
+    cond2 <- inherits(mesh, "fm_mesh_2d")
     cond3 <- inherits(mesh, "metric_graph")
     stopifnot(cond1 || cond2 || cond3)
     if (cond1 || cond2) {
@@ -1127,8 +1127,8 @@ rspde.make.A <- function(mesh = NULL,
                          n.group = NULL,
                          n.repl = NULL) {
   if (!is.null(mesh)) {
-    cond1 <- inherits(mesh, "inla.mesh.1d")
-    cond2 <- inherits(mesh, "inla.mesh")
+    cond1 <- inherits(mesh, "fm_mesh_1d")
+    cond2 <- inherits(mesh, "fm_mesh_2d")
     cond3 <- inherits(mesh, "metric_graph")
     stopifnot(cond1 || cond2 || cond3)
     if (cond1 || cond2) {
@@ -1338,12 +1338,12 @@ rspde.make.index <- function(name, n.spde = NULL, n.group = 1,
   }
 
   if (!is.null(mesh)) {
-    cond1 <- inherits(mesh, "inla.mesh.1d")
-    cond2 <- inherits(mesh, "inla.mesh")
+    cond1 <- inherits(mesh, "fm_mesh_1d")
+    cond2 <- inherits(mesh, "fm_mesh_2d")
     cond3 <- inherits(mesh, "metric_graph")
     stopifnot(cond1 || cond2 || cond3)
     if (cond1 || cond2) {
-      n_mesh <- mesh$n
+      n_mesh <- fmesher::fm_dof(mesh)
       dim <- get_inla_mesh_dimension(mesh)
     } else if (cond3) {
       dim <- 1
@@ -2598,8 +2598,8 @@ rspde.mesh.projector <- function(mesh,
 rspde.mesh.project.inla.mesh <- function(mesh, loc = NULL,
                                          field = NULL, rspde.order = 1,
                                          nu = NULL, ...) {
-  cond1 <- inherits(mesh, "inla.mesh.1d")
-  cond2 <- inherits(mesh, "inla.mesh")
+  cond1 <- inherits(mesh, "fm_mesh_1d")
+  cond2 <- inherits(mesh, "fm_mesh_2d")
   stopifnot(cond1 || cond2)
 
   if (!missing(field) && !is.null(field)) {
@@ -2679,7 +2679,7 @@ rspde.mesh.project.rspde.mesh.projector <- function(projector, field, ...) {
 
 rspde.mesh.project.inla.mesh.1d <- function(mesh, loc, field = NULL,
                                             rspde.order = 1, nu = NULL, ...) {
-  stopifnot(inherits(mesh, "inla.mesh.1d"))
+  stopifnot(inherits(mesh, "fm_mesh_1d"))
   if (!missing(field) && !is.null(field)) {
     proj <- rspde.mesh.projector(mesh, loc,
       rspde.order = rspde.order, nu = nu, ...
