@@ -404,12 +404,7 @@ rspde_fitprd <- inla(f,
   family = "Gaussian",
   data = inla.stack.data(st.all),
   control.predictor = list(
-    A = inla.stack.A(st.all),
-    compute = TRUE, link = 1
-  ),
-  control.compute = list(
-    return.marginals = FALSE,
-    return.marginals.predictor = FALSE
+    A = inla.stack.A(st.all)
   ),
   control.inla = list(int.strategy = "eb")
 )
