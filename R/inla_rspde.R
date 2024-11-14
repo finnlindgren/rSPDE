@@ -2679,7 +2679,7 @@ rspde.mesh.project.rspde.mesh.projector <- function(projector, field, ...) {
 
 rspde.mesh.project.inla.mesh.1d <- function(mesh, loc, field = NULL,
                                             rspde.order = 1, nu = NULL, ...) {
-  stopifnot(inherits(mesh, "inla.mesh.1d"))
+  stopifnot(inherits(mesh, "fm_mesh_1d"))
   if (!missing(field) && !is.null(field)) {
     proj <- rspde.mesh.projector(mesh, loc,
       rspde.order = rspde.order, nu = nu, ...
