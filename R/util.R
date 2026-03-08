@@ -1235,7 +1235,7 @@ rspde_check_user_input <- function(param, label, lower_bound = NULL, dim = 1, up
   if (!is.numeric(param)) {
     stop(paste(label, "should be a numeric value!"))
   }
-  
+
   if (length(param) != dim) {
     if (dim == 1) {
       stop(paste(label, "should be a single numeric value!"))
@@ -1243,15 +1243,15 @@ rspde_check_user_input <- function(param, label, lower_bound = NULL, dim = 1, up
       stop(paste(label, "should have a length of", dim, "!"))
     }
   }
-  
+
   if (!is.null(lower_bound) && any(param < lower_bound)) {
     stop(paste(label, "should be greater than or equal to", lower_bound, "!"))
   }
-  
+
   if (!is.null(upper_bound) && any(param > upper_bound)) {
     stop(paste(label, "should be less than or equal to", upper_bound, "!"))
   }
-  
+
   return(param)
 }
 
@@ -1726,19 +1726,19 @@ convert_B_matrices <- function(B.sigma, B.range, n.spde, nu.nominal, d) {
 
 #' Change parameterization between SPDE and Matern
 #'
-#' This function converts parameters between SPDE parameterization (tau, kappa) 
-#' and Matern parameterization (sigma, range) for spatial models. It handles both 
+#' This function converts parameters between SPDE parameterization (tau, kappa)
+#' and Matern parameterization (sigma, range) for spatial models. It handles both
 #' directions of conversion and properly accounts for fixed parameters.
 #'
 #' @param d The dimension of the spatial domain
 #' @param nu The smoothness parameter
-#' @param par Vector of parameters to convert (either [tau, kappa] or [sigma, range])
+#' @param par Vector of parameters to convert (either `[tau, kappa]` or `[sigma, range]`)
 #' @param hessian The observed Fisher information matrix (can be NULL if all parameters are fixed)
 #' @param fixed_params Named logical vector indicating which parameters are fixed
 #' @param to_spde Logical; if TRUE, convert from Matern to SPDE, otherwise from SPDE to Matern
 #' @return A list containing converted parameters and their standard errors
 #' @noRd
-change_parameterization_lme <- function(d, nu, par, hessian, 
+change_parameterization_lme <- function(d, nu, par, hessian,
                                         fixed_params = c(tau = FALSE, kappa = FALSE),
                                         to_spde = FALSE) {
   if (!to_spde) {
@@ -1773,16 +1773,16 @@ change_parameterization_lme <- function(d, nu, par, hessian,
     if (sum(!fixed_params) > 0 && !is.null(hessian) && nrow(hessian) > 0 && ncol(hessian) > 0) {
       # Filter grad_par for non-fixed parameters
       grad_par <- grad_par[!fixed_params, , drop=FALSE]
-      
+
       # Check dimension compatibility
       if (ncol(grad_par) == nrow(hessian) && nrow(hessian) == ncol(hessian)) {
         # Transform fisher information matrix
         new_observed_fisher <- t(grad_par) %*% hessian %*% (grad_par)
-        
+
         # Try to invert the fisher information
-        inv_fisher <- tryCatch(solve(new_observed_fisher), 
+        inv_fisher <- tryCatch(solve(new_observed_fisher),
                               error = function(e) matrix(NA, nrow(new_observed_fisher), ncol(new_observed_fisher)))
-        
+
         # Calculate standard errors if inversion succeeded
         if (!any(is.na(inv_fisher))) {
           # Get diagonal elements for standard errors
@@ -1837,16 +1837,16 @@ change_parameterization_lme <- function(d, nu, par, hessian,
     if (sum(!fixed_params) > 0 && !is.null(hessian) && nrow(hessian) > 0 && ncol(hessian) > 0) {
       # Filter grad_par for non-fixed parameters
       grad_par <- grad_par[!fixed_params, , drop=FALSE]
-      
+
       # Check dimension compatibility
       if (ncol(grad_par) == nrow(hessian) && nrow(hessian) == ncol(hessian)) {
         # Transform fisher information matrix
         new_observed_fisher <- t(grad_par) %*% hessian %*% (grad_par)
-        
+
         # Try to invert the fisher information
-        inv_fisher <- tryCatch(solve(new_observed_fisher), 
+        inv_fisher <- tryCatch(solve(new_observed_fisher),
                               error = function(e) matrix(NA, nrow(new_observed_fisher), ncol(new_observed_fisher)))
-        
+
         # Calculate standard errors if inversion succeeded
         if (!any(is.na(inv_fisher))) {
           # Get diagonal elements for standard errors
@@ -1956,7 +1956,7 @@ select_indexes <- function(data, idx) {
 #' and supporting k-fold, leave-one-out (LOO), and leave-percentage-out (LPO) methods.
 #' Handles missing values and maintains data structure across multiple datasets.
 #'
-#' @param data_list A list of datasets, one per likelihood. Each dataset can be a data.frame, 
+#' @param data_list A list of datasets, one per likelihood. Each dataset can be a data.frame,
 #'        SpatialPointsDataFrame, or metric_graph_data object
 #' @param cv_type Type of cross-validation: "k-fold", "loo", or "lpo". Default is "k-fold"
 #' @param k Number of folds for k-fold CV. Default is 5
@@ -1971,24 +1971,24 @@ select_indexes <- function(data, idx) {
 #' The function handles NA values by removing rows with any missing values before
 #' creating splits. For multiple datasets, indices are mapped back to their original
 #' positions in each dataset.
-#' @export 
+#' @export
 
 create_train_test_indices <- function(data_list, cv_type = c("k-fold", "loo", "lpo"),
                                     k = 5, percentage = 20, number_folds = 10) {
   # First concatenate all data
   if (inherits(data_list[[1]], "metric_graph_data")) {
     data_list <- lapply(data_list, as.data.frame)
-  } 
-  
+  }
+
   data <- do.call(rbind, data_list)
-  
+
   # Get indices for concatenated data as before
   idx <- seq_len(nrow(data))
-    
+
   # Get cumulative sizes to map back to individual datasets
   n_samples <- sapply(data_list, nrow)
   cum_sizes <- cumsum(c(0, n_samples))
-  
+
   # Function to map concatenated indices to individual dataset indices
   map_to_likelihood_indices <- function(indices) {
     lapply(seq_along(data_list), function(i) {
@@ -1996,14 +1996,14 @@ create_train_test_indices <- function(data_list, cv_type = c("k-fold", "loo", "l
       likelihood_indices - cum_sizes[i]
     })
   }
-  
+
   if (cv_type == "k-fold") {
     folds <- cut(sample(idx), breaks = k, label = FALSE)
     fold_list <- lapply(1:k, function(i) {
       test_idx <- which(folds == i, arr.ind = TRUE)
       train_idx <- idx[-test_idx]
       test_idx <- idx[test_idx]
-      
+
       list(
         train = map_to_likelihood_indices(train_idx),
         test = map_to_likelihood_indices(test_idx)
@@ -2020,14 +2020,14 @@ create_train_test_indices <- function(data_list, cv_type = c("k-fold", "loo", "l
     fold_list <- lapply(1:number_folds, function(i) {
       test_idx <- sample(idx, size = (1 - percentage / 100) * length(idx))
       train_idx <- idx[-match(test_idx, idx)]
-      
+
       list(
         train = map_to_likelihood_indices(train_idx),
         test = map_to_likelihood_indices(test_idx)
       )
     })
   }
-  
+
   return(fold_list)
 }
 
@@ -2118,7 +2118,7 @@ handle_prior_nu <- function(prior.nu, nu.upper.bound, nu.prec.inc = 0.01, prior.
   if (is.null(prior.nu)) {
     prior.nu <- list()
   }
-  
+
   # Check and set loglocation
   if (is.null(prior.nu$loglocation)) {
     prior.nu$loglocation <- log(min(1, nu.upper.bound / 2))
@@ -2126,7 +2126,7 @@ handle_prior_nu <- function(prior.nu, nu.upper.bound, nu.prec.inc = 0.01, prior.
     warning("'prior.nu$loglocation' has length > 1. Only the first element will be used.")
     prior.nu$loglocation <- prior.nu$loglocation[1]
   }
-  
+
   # Check and set mean
   if (is.null(prior.nu[["mean"]])) {
     prior.nu[["mean"]] <- min(1, nu.upper.bound / 2)
@@ -2134,7 +2134,7 @@ handle_prior_nu <- function(prior.nu, nu.upper.bound, nu.prec.inc = 0.01, prior.
     warning("'prior.nu$mean' has length > 1. Only the first element will be used.")
     prior.nu[["mean"]] <- prior.nu[["mean"]][1]
   }
-  
+
   # Check and set prec
   if (is.null(prior.nu$prec)) {
     mu_temp <- prior.nu[["mean"]] / nu.upper.bound
@@ -2143,7 +2143,7 @@ handle_prior_nu <- function(prior.nu, nu.upper.bound, nu.prec.inc = 0.01, prior.
     warning("'prior.nu$prec' has length > 1. Only the first element will be used.")
     prior.nu$prec <- prior.nu$prec[1]
   }
-  
+
   # Check and set logscale
   if (is.null(prior.nu[["logscale"]])) {
     prior.nu[["logscale"]] <- 1
@@ -2151,7 +2151,7 @@ handle_prior_nu <- function(prior.nu, nu.upper.bound, nu.prec.inc = 0.01, prior.
     warning("'prior.nu$logscale' has length > 1. Only the first element will be used.")
     prior.nu[["logscale"]] <- prior.nu[["logscale"]][1]
   }
-  
+
   # Determine starting value for nu
   if (prior.nu.dist == "beta") {
     start.nu <- prior.nu[["mean"]]
@@ -2160,7 +2160,7 @@ handle_prior_nu <- function(prior.nu, nu.upper.bound, nu.prec.inc = 0.01, prior.
   } else {
     stop("prior.nu.dist should be either 'beta' or 'lognormal'.")
   }
-  
+
   # Validate start.nu range
   if (start.nu > nu.upper.bound || start.nu < 0) {
     if (prior.nu.dist == "beta") {
@@ -2169,7 +2169,7 @@ handle_prior_nu <- function(prior.nu, nu.upper.bound, nu.prec.inc = 0.01, prior.
       stop("The 'loglocation' element of 'prior.nu' should be a number less than log(nu.upper.bound)!")
     }
   }
-  
+
   return(list(prior.nu = prior.nu, start.nu = start.nu))
 }
 
@@ -2213,31 +2213,31 @@ transform_parameters_anisotropic <- function(theta, nu_upper_bound = NULL) {
   if (!(length(theta) %in% c(4, 5))) {
     stop("Theta must be a numeric vector of length 4 or 5.")
   }
-  
+
   # Functions for transformations
   adjusted_inv_logit <- function(z) {
     (2 / (1 + exp(-z))) - 1
   }
-  
+
   forward_nu <- function(lnu, nu_upper_bound) {
     exp(lnu) / (1 + exp(lnu)) * nu_upper_bound
   }
-  
+
   # Extract parameters
   lhx <- theta[1]
   lhy <- theta[2]
   logit_hxy <- theta[3]
   lsigma <- theta[4]
-  
+
   # Transform parameters to original scale
   hx <- exp(lhx)
   hy <- exp(lhy)
   hxy <- adjusted_inv_logit(logit_hxy)
   sigma <- exp(lsigma)
-  
+
   # Prepare the output
   result <- list(hx = hx, hy = hy, hxy = hxy, sigma = sigma)
-  
+
   # If lnu is provided, compute nu
   if (length(theta) == 5) {
     if (is.null(nu_upper_bound)) {
@@ -2247,7 +2247,7 @@ transform_parameters_anisotropic <- function(theta, nu_upper_bound = NULL) {
     nu <- forward_nu(lnu, nu_upper_bound)
     result$nu <- nu
   }
-  
+
   return(result)
 }
 
@@ -2260,22 +2260,22 @@ find_inla_lib_path <- function() {
         warning("INLA package is not installed")
         return(NULL)
     }
-    
+
     # Get the base INLA bin directory
     inla_bin_path <- system.file("bin", package = "INLA")
-    
+
     if (inla_bin_path == "") {
         warning("INLA bin directory not found")
         return(NULL)
     }
-    
+
     # Determine OS and architecture
     os <- .Platform$OS.type
     arch <- R.Version()$arch
-    
+
     # Initialize path
     lib_path <- NULL
-    
+
     if (os == "windows") {
         # For Windows - always use windows/64bit or windows/32bit
         base_path <- file.path(inla_bin_path, "windows")
@@ -2314,43 +2314,43 @@ find_inla_lib_path <- function() {
             }
         }
     }
-    
+
     if (is.null(lib_path)) {
         warning("Could not determine appropriate library path")
         return(NULL)
     }
-    
+
     if (!dir.exists(lib_path)) {
         warning(sprintf("Directory does not exist: %s", lib_path))
         return(NULL)
     }
-    
+
     return(lib_path)
 }
 
-#' @noRd 
+#' @noRd
 rspde_check_cgeneric_symbol <- function(model) {
     # Ensure the required fields exist in the model object
-    if (!"f" %in% names(model) || !"cgeneric" %in% names(model$f) || 
+    if (!"f" %in% names(model) || !"cgeneric" %in% names(model$f) ||
         !"shlib" %in% names(model$f$cgeneric) || !"model" %in% names(model$f$cgeneric)) {
         stop("There was a problem with the model creation.")
     }
-    
+
     # Extract the shared library path and the symbol name
     shlib <- model$f$cgeneric$shlib
     symbol <- model$f$cgeneric$model
-    
+
     # Check if the shared library exists
     if (!file.exists(shlib)) {
         stop(paste("The shared library", shlib, "does not exist."))
     }
-    
+
     # Get R_HOME library path
     r_lib_path <- file.path(R.home("lib"))
-    
+
     # Get INLA library path
     inla_lib_path <- find_inla_lib_path()
-    
+
     # Set up library path environment variable based on OS
     if (.Platform$OS.type == "windows") {
         current_path <- Sys.getenv("PATH")
@@ -2369,7 +2369,7 @@ rspde_check_cgeneric_symbol <- function(model) {
         }
         Sys.setenv(LD_LIBRARY_PATH = new_lib_path)
     }
-    
+
     # Use the `dyn.load` and `is.loaded` functions to check for the symbol
     tryCatch({
         dyn.load(shlib) # Load the shared library
@@ -2377,18 +2377,18 @@ rspde_check_cgeneric_symbol <- function(model) {
             dyn.unload(shlib) # Unload if the symbol is available
             return(invisible(TRUE)) # Return silently
         } else {
-            warning(paste0("The symbol '", symbol, "' is not available in the shared library. Please install the latest testing version of INLA. 
-      If the problem persists after installing the latest testing version of INLA, please open an issue at https://github.com/davidbolin/rSPDE/issues, 
+            warning(paste0("The symbol '", symbol, "' is not available in the shared library. Please install the latest testing version of INLA.
+      If the problem persists after installing the latest testing version of INLA, please open an issue at https://github.com/davidbolin/rSPDE/issues,
       requesting that this model be added to INLA."))
         }
         dyn.unload(shlib) # Ensure the library is unloaded
     }, error = function(e) {
-        warning(paste0("Error while loading the shared library or checking the symbol: ", e$message, 
-                       ". Please install the latest testing version of INLA. If the problem persists after installing the 
-                   latest testing version of INLA, please open an issue at https://github.com/davidbolin/rSPDE/issues, 
+        warning(paste0("Error while loading the shared library or checking the symbol: ", e$message,
+                       ". Please install the latest testing version of INLA. If the problem persists after installing the
+                   latest testing version of INLA, please open an issue at https://github.com/davidbolin/rSPDE/issues,
                    requesting that this model be added to INLA."))
     })
-    
+
     # Restore original environment variables
     if (.Platform$OS.type == "windows") {
         Sys.setenv(PATH = current_path)
@@ -2401,11 +2401,11 @@ rspde_check_cgeneric_symbol <- function(model) {
 match_with_tolerance <- function(input, loc, tolerance = 1e-6) {
   # Initialize a vector to store matched indices
   matched_indices <- integer(length(input))
-  
+
   for (i in seq_along(input)) {
     # Find the indices in loc that match the current input element within the tolerance
     match_idx <- which(abs(loc - input[i]) <= tolerance)
-    
+
     if (length(match_idx) == 0) {
       # If no match is found, throw an error
       stop(sprintf("Error: The input location %.10f is not present in the original locations used to create the model object.", input[i]))
@@ -2414,29 +2414,29 @@ match_with_tolerance <- function(input, loc, tolerance = 1e-6) {
       warning(sprintf("Warning: Multiple matches found for input location %.10f. Using the first match.", input[i]))
       match_idx <- match_idx[1]
     }
-    
+
     # Store the matched index
     matched_indices[i] <- match_idx
   }
-  
+
   return(matched_indices)
 }
 
 
-#' @noRd 
+#' @noRd
 merge_with_tolerance <- function(original_data, new_data, by, tolerance = 1e-5) {
   # Ensure column names match by adding missing columns
   all_columns <- union(names(original_data), names(new_data))
   original_data[setdiff(all_columns, names(original_data))] <- NA
   new_data[setdiff(all_columns, names(new_data))] <- NA
-  
+
   # Extract reference columns
   original_loc <- original_data[[by]]
   new_loc <- new_data[[by]]
-  
+
   # Initialize the merged dataset
   merged_data <- original_data
-  
+
   # Match rows from new_data to original_data within the tolerance
   for (i in seq_along(new_loc)) {
     diffs <- abs(original_loc - new_loc[i])
@@ -2445,10 +2445,10 @@ merge_with_tolerance <- function(original_data, new_data, by, tolerance = 1e-5) 
       matched_index <- which.min(diffs)
       merged_row <- merged_data[matched_index, ]
       new_row <- new_data[i, ]
-      
+
       # Exclude the `by` column from the merge
       columns_to_merge <- setdiff(names(new_data), by)
-      
+
       # Check for conflicts and replace missing values in merged_row with new_row
       for (col in columns_to_merge) {
         if (!is.na(new_row[[col]])) {
@@ -2461,7 +2461,7 @@ merge_with_tolerance <- function(original_data, new_data, by, tolerance = 1e-5) 
           merged_row[[col]] <- new_row[[col]]
         }
       }
-      
+
       # Replace the row in merged_data
       merged_data[matched_index, ] <- merged_row
     } else {
@@ -2469,10 +2469,10 @@ merge_with_tolerance <- function(original_data, new_data, by, tolerance = 1e-5) 
       merged_data <- rbind(merged_data, new_data[i, ])
     }
   }
-  
+
   # Remove duplicates based on the `by` column
   merged_data <- merged_data[!duplicated(merged_data[[by]]), ]
-  
+
   return(merged_data)
 }
 
@@ -2512,19 +2512,19 @@ transform_parameters_spacetime <- function(theta, st_model) {
   if (!is.list(st_model) || !all(c("d", "bound_rho", "is_bounded", "drift") %in% names(st_model))) {
     stop("st_model must be a list containing 'd', 'bound_rho', 'is_bounded', and 'drift'.")
   }
-  
+
   # Extract model parameters
   d <- st_model$d
   bound <- as.double(st_model$bound_rho)
   is_bounded <- st_model$is_bounded
   drift <- st_model$drift
-  
+
   # Functions for transformations
   adjusted_inv_logit <- function(z, L) {
     if (L <= 0) stop("Bound L must be positive.")
     L * (2 / (1 + exp(-z)) - 1)
   }
-  
+
   # Transform required parameters
   lkappa <- theta[1]
   lsigma <- theta[2]
@@ -2532,9 +2532,9 @@ transform_parameters_spacetime <- function(theta, st_model) {
   kappa <- exp(lkappa)
   sigma <- exp(lsigma)
   gamma <- exp(lgamma)
-  
+
   result <- list(kappa = kappa, sigma = sigma, gamma = gamma)
-  
+
   # Include rho and rho2 if drift is included
   if (drift) {
     if (is_bounded) {
@@ -2544,7 +2544,7 @@ transform_parameters_spacetime <- function(theta, st_model) {
       rho <- theta[4]
     }
     result$rho <- rho
-    
+
     # Include rho2 if d = 2
     if (d == 2) {
       if (is_bounded) {
@@ -2561,7 +2561,7 @@ transform_parameters_spacetime <- function(theta, st_model) {
     result$rho <- 0.0
     result$rho2 <- 0.0
   }
-  
+
   return(result)
 }
 
@@ -2571,7 +2571,7 @@ transform_parameters_spacetime <- function(theta, st_model) {
 #' @description Extracts the possible parameters for a given model type
 #' @param model The model object
 #' @return A character vector of possible parameters
-#' @noRd 
+#' @noRd
 
 extract_possible_parameters <- function(model) {
   if (inherits(model, "CBrSPDEobj") || inherits(model, "rSPDEobj") || inherits(model, "rSPDEobj1d")) {
@@ -2599,13 +2599,13 @@ extract_possible_parameters <- function(model) {
 #' @param model The model object
 #' @param model_options The model options list containing parameter settings
 #' @return The processed model options list
-#' @details 
+#' @details
 #' For nonstationary models (when model$stationary is FALSE), this function handles
 #' the conversion of vector parameters (start_theta and fix_theta) into individual
 #' parameters (start_theta1, start_theta2, etc.) that can be used in the estimation.
-#' 
+#'
 #' For spacetime models, it ensures alpha and beta parameters are properly set.
-#' @noRd 
+#' @noRd
 
 process_model_options <- function(model, model_options) {
   if(inherits(model, "CBrSPDEobj") || inherits(model, "rSPDEobj")) {
@@ -2613,31 +2613,31 @@ process_model_options <- function(model, model_options) {
       # Process start_theta vector if it exists
       if(!is.null(model_options[["start_theta"]])) {
         if(length(model_options[["start_theta"]]) != length(model$theta)) {
-          stop(paste0("The length of start_theta (", length(model_options[["start_theta"]]), 
+          stop(paste0("The length of start_theta (", length(model_options[["start_theta"]]),
                      ") must match the length of model$theta (", length(model$theta), ")."))
         }
-        
+
         # Create individual start_theta1, start_theta2, etc. parameters
         for(i in seq_along(model_options[["start_theta"]])) {
           model_options[[paste0("start_theta", i)]] <- model_options[["start_theta"]][i]
         }
-        
+
         # Remove the original start_theta
         model_options[["start_theta"]] <- NULL
       }
-      
+
       # Process fix_theta vector if it exists
       if(!is.null(model_options[["fix_theta"]])) {
         if(length(model_options[["fix_theta"]]) != length(model$theta)) {
-          stop(paste0("The length of fix_theta (", length(model_options[["fix_theta"]]), 
+          stop(paste0("The length of fix_theta (", length(model_options[["fix_theta"]]),
                      ") must match the length of model$theta (", length(model$theta), ")."))
         }
-        
+
         # Create individual fix_theta1, fix_theta2, etc. parameters
         for(i in seq_along(model_options[["fix_theta"]])) {
           model_options[[paste0("fix_theta", i)]] <- model_options[["fix_theta"]][i]
         }
-        
+
         # Remove the original fix_theta
         model_options[["fix_theta"]] <- NULL
       }
@@ -2669,7 +2669,7 @@ process_model_options <- function(model, model_options) {
 #' @description Checks the model options for a given model type
 #' @param model_options The model options
 #' @param model The model object
-#' @noRd 
+#' @noRd
 
 general_checks_model_options <- function(model_options, model) {
   if(!is.null(model$parameterization)){
@@ -2683,19 +2683,19 @@ general_checks_model_options <- function(model_options, model) {
   if (is.null(model_options)) {
     return(parameterization)
   }
-    
+
   # Get all option names from model_options
   option_names <- names(model_options)
-  
+
   # Check for fix_* and start_* parameters
   for (opt_name in option_names) {
     # Extract parameter name from option name
     if (startsWith(opt_name, "fix_") || startsWith(opt_name, "start_")) {
       param_name <- substring(opt_name, nchar(regmatches(opt_name, regexpr("^(fix|start)_", opt_name))) + 1)
-      
+
       # Check if parameter name is valid for this model type
       if (!param_name %in% possible_params) {
-        stop(sprintf("'%s' is not a valid parameter for this model class. Valid parameters are: %s", 
+        stop(sprintf("'%s' is not a valid parameter for this model class. Valid parameters are: %s",
                      param_name, paste(possible_params, collapse = ", ")))
       }
     }
@@ -2705,9 +2705,9 @@ general_checks_model_options <- function(model_options, model) {
   for (param_name in possible_params) {
     fix_param <- paste0("fix_", param_name)
     start_param <- paste0("start_", param_name)
-    
+
     if (fix_param %in% option_names && start_param %in% option_names) {
-      warning(sprintf("Both '%s' and '%s' were provided in model_options. Since the parameter is fixed, '%s' will be ignored.", 
+      warning(sprintf("Both '%s' and '%s' were provided in model_options. Since the parameter is fixed, '%s' will be ignored.",
                      fix_param, start_param, start_param))
     }
   }
@@ -2715,7 +2715,7 @@ general_checks_model_options <- function(model_options, model) {
   # Define parameter groups
   spde_params <- c("alpha", "kappa", "tau")
   matern_params <- c("nu", "range", "sigma")
-  
+
   # Check for mixing of parameterizations
   if (inherits(model, "CBrSPDEobj") || inherits(model, "rSPDEobj") || inherits(model, "rSPDEobj1d")) {
     # For stationary models
@@ -2724,16 +2724,16 @@ general_checks_model_options <- function(model_options, model) {
       has_spde_params <- any(sapply(spde_params, function(param) {
         paste0("fix_", param) %in% option_names || paste0("start_", param) %in% option_names
       }))
-      
+
       has_matern_params <- any(sapply(matern_params, function(param) {
         paste0("fix_", param) %in% option_names || paste0("start_", param) %in% option_names
       }))
-      
+
       # If both parameterization types are used, issue an error
       if (has_spde_params && has_matern_params) {
         stop("Mixing parameterizations is not allowed. Use either SPDE parameterization (alpha, kappa, tau) or Matern parameterization (nu, range, sigma), but not both.")
       }
-      
+
       if (has_matern_params) {
         parameterization <- "matern"
       }
@@ -2741,11 +2741,11 @@ general_checks_model_options <- function(model_options, model) {
       # For nonstationary models, check based on alpha/nu parameters
       has_spde_param <- "fix_alpha" %in% option_names || "start_alpha" %in% option_names
       has_matern_param <- "fix_nu" %in% option_names || "start_nu" %in% option_names
-      
+
       if (has_spde_param && has_matern_param) {
         stop("Mixing parameterizations is not allowed. Use either SPDE parameterization (alpha) or Matern parameterization (nu), but not both.")
       }
-      
+
       if (has_matern_param) {
         parameterization <- "matern"
       }
@@ -2757,15 +2757,15 @@ general_checks_model_options <- function(model_options, model) {
   }
 
   # Check for intrinsic models with fix_alpha > 0 and fix_kappa
-  if (inherits(model, "intrinsicCBrSPDEobj") && 
-      !is.null(model_options$fix_alpha) && 
-      model_options$fix_alpha > 0 && 
+  if (inherits(model, "intrinsicCBrSPDEobj") &&
+      !is.null(model_options$fix_alpha) &&
+      model_options$fix_alpha > 0 &&
       !is.null(model_options$fix_kappa)) {
     if (model_options$fix_kappa <= 0) {
       stop("For intrinsic models with fix_alpha > 0, fix_kappa must be positive.")
     }
   }
-  
+
   return(parameterization)
 }
 
@@ -2777,7 +2777,7 @@ general_checks_model_options <- function(model_options, model) {
 #' @param model A model object (e.g., "intrinsicCBrSPDEobj", "CBrSPDEobj")
 #' @param model_options A list of model options containing fixed and starting values for parameters
 #' @return NULL invisibly
-#' @noRd 
+#' @noRd
 
 general_checks_lme <- function(model, model_options) {
   # Check alpha and beta combination for intrinsic models
@@ -2786,23 +2786,23 @@ general_checks_lme <- function(model, model_options) {
       stop("One must have alpha + beta > d/2.")
     }
   }
-  
+
   # Check fix_alpha for non-intrinsic models and non-space-time models
-  if (!inherits(model, "intrinsicCBrSPDEobj") && 
-      !inherits(model, "spacetimeobj") && 
-      !is.null(model_options$fix_alpha) && 
+  if (!inherits(model, "intrinsicCBrSPDEobj") &&
+      !inherits(model, "spacetimeobj") &&
+      !is.null(model_options$fix_alpha) &&
       model_options$fix_alpha <= model$d / 2) {
     stop(paste("model_options$fix_alpha must be greater than dim/2 =", model$d / 2))
   }
-  
+
   # Check start_alpha for non-intrinsic models
-  if (!inherits(model, "intrinsicCBrSPDEobj") && 
-      !inherits(model, "spacetimeobj") &&   
-      !is.null(model_options$start_alpha) && 
+  if (!inherits(model, "intrinsicCBrSPDEobj") &&
+      !inherits(model, "spacetimeobj") &&
+      !is.null(model_options$start_alpha) &&
       model_options$start_alpha <= model$d / 2) {
     stop(paste("model_options$start_alpha must be greater than dim/2 =", model$d / 2))
   }
-  
+
   invisible(NULL)
 }
 
@@ -2819,7 +2819,7 @@ clean_fixed_param_names <- function(param_list) {
   clean_name <- function(name) {
     gsub(" \\(fixed\\)$", "", name)
   }
-  
+
   # Process the list recursively
   if (is.list(param_list)) {
     # For each element in the list
@@ -2832,7 +2832,7 @@ clean_fixed_param_names <- function(param_list) {
         names(param_list[[i]]) <- sapply(names(param_list[[i]]), clean_name)
       }
     }
-    
+
     # Also clean the names of the list itself
     if (!is.null(names(param_list))) {
       names(param_list) <- sapply(names(param_list), clean_name)
@@ -2841,12 +2841,12 @@ clean_fixed_param_names <- function(param_list) {
     # If it's a named vector, clean its names
     names(param_list) <- sapply(names(param_list), clean_name)
   }
-  
+
   return(param_list)
 }
 #' Extracts starting values from previous_fit
 #'
-#' This function extracts parameter values from a previous model fit and 
+#' This function extracts parameter values from a previous model fit and
 #' uses them as starting values or fixed values for a new model fit.
 #' For non-stationary models, it handles Theta parameters specially.
 #'
@@ -2854,32 +2854,32 @@ clean_fixed_param_names <- function(param_list) {
 #' @param fix_coeff Logical indicating whether to use extracted values as fixed parameters
 #' @param model_options List of model options that may override extracted values
 #' @return Updated model_options list with extracted starting or fixed values
-#' @noRd  
+#' @noRd
 extract_starting_values <- function(previous_fit, fix_coeff = FALSE, model_options = NULL) {
   # Validate previous_fit
   if (is.null(previous_fit) || !inherits(previous_fit, "rspde_lme")) {
     return(model_options)
   }
-  
+
   # Determine prefix based on fix_coeff
   prefix <- if (fix_coeff) "fix_" else "start_"
-  
+
   # Initialize model_options_tmp
   model_options_tmp <- list()
-  
+
   # Check if it's a non-stationary model (previous_fit$stationary is FALSE and inherits from 'CBrSPDEobj' or 'rSPDEobj')
-  is_nonstationary <- !isTRUE(previous_fit$stationary) && 
-                     (inherits(previous_fit$latent_model, "CBrSPDEobj") || 
+  is_nonstationary <- !isTRUE(previous_fit$stationary) &&
+                     (inherits(previous_fit$latent_model, "CBrSPDEobj") ||
                       inherits(previous_fit$latent_model, "rSPDEobj"))
-  
+
   # Get parameterization from previous_fit
   parameterization <- previous_fit$parameterization_latent
-  
+
   if (is_nonstationary) {
     # Handle the non-stationary case with Theta parameters
     random_effects <- previous_fit$coeff$random_effects
     param_names <- names(random_effects)
-    
+
     # Extract all Theta parameters individually
     theta_indices <- grep("^Theta", param_names)
     if (length(theta_indices) > 0) {
@@ -2890,7 +2890,7 @@ extract_starting_values <- function(previous_fit, fix_coeff = FALSE, model_optio
         model_options_tmp[[paste0(prefix, new_name)]] <- random_effects[[param_name]]
       }
     }
-    
+
     # Add other parameters (not Theta)
     non_theta_indices <- setdiff(seq_along(random_effects), theta_indices)
     for (i in non_theta_indices) {
@@ -2899,16 +2899,16 @@ extract_starting_values <- function(previous_fit, fix_coeff = FALSE, model_optio
     }
   } else {
     random_effects <- previous_fit$coeff$random_effects
-    
+
     # Create named list with appropriate prefix
     for (param_name in names(random_effects)) {
       model_options_tmp[[paste0(prefix, tolower(param_name))]] <- random_effects[[param_name]]
     }
   }
-  
+
   # Add sigma_e with appropriate prefix
   model_options_tmp[[paste0(prefix, "sigma_e")]] <- previous_fit$coeff$measurement_error[[1]]
-    
+
   # If user provided model_options, combine them
   if (!is.null(model_options)) {
     # Overwrite extracted options with user-provided options
@@ -2916,7 +2916,7 @@ extract_starting_values <- function(previous_fit, fix_coeff = FALSE, model_optio
       model_options_tmp[[name]] <- model_options[[name]]
     }
   }
-  
+
   return(clean_fixed_param_names(model_options_tmp))
 }
 #' Get Model Starting Values
@@ -2926,12 +2926,12 @@ extract_starting_values <- function(previous_fit, fix_coeff = FALSE, model_optio
 #' @param y_resp Response variable (optional, used for sigma_e initialization)
 #' @param parameterization The parameterization to use ("spde" or "matern")
 #' @return A named vector of starting values for optimization
-#' @noRd 
+#' @noRd
 
 get_model_starting_values <- function(model, model_options, y_resp, parameterization) {
   # Get possible parameters for this model type
   possible_params <- extract_possible_parameters(model)
-  
+
   # Check model inheritance types
   spacetime <- inherits(model, "spacetimeobj")
   anisotropic <- inherits(model, "CBrSPDEobj2d")
@@ -2939,27 +2939,27 @@ get_model_starting_values <- function(model, model_options, y_resp, parameteriza
 
   cond_gen <- !spacetime && !intrinsic && !anisotropic
 
-  # For spacetime models with d=2, set rho2 
+  # For spacetime models with d=2, set rho2
   if (spacetime && model$d == 2) {
     model[["rho2"]] <- model[["rho"]]
   }
-  
+
   # Initialize starting values
   starting_values <- numeric(0)
-  
+
   # For non-stationary models, handle theta parameters
   if (!is.null(model$stationary) && !model$stationary && !spacetime && !intrinsic) {
     if (is.null(model$theta)) {
       stop("There was an error processing the starting values. model$theta is NULL.")
     }
-    
+
     # Initialize starting values with alpha/nu first
     if(model$parameterization == "matern") {
       starting_values <- c(nu = log(model$nu))
     } else {
-      starting_values <- c(alpha = log(model$alpha)) 
+      starting_values <- c(alpha = log(model$alpha))
     }
-    
+
     # Add theta parameters
     theta_values <- model$theta
     names(theta_values) <- paste0("theta", 1:length(theta_values))
@@ -2970,11 +2970,11 @@ get_model_starting_values <- function(model, model_options, y_resp, parameteriza
 
       # Skip theta parameters for stationary models
       if (grepl("^theta", param)) next
-      
+
       # Skip parameters not relevant to current parameterization
       if (cond_gen && parameterization == "matern" && param %in% c("alpha", "kappa", "tau")) next
       if (cond_gen && parameterization == "spde" && param %in% c("nu", "range", "sigma")) next
-      
+
       # Get parameter value from model
       if (!is.null(model[[param]])) {
         # Special transformations for certain parameters
@@ -3018,20 +3018,20 @@ get_model_starting_values <- function(model, model_options, y_resp, parameteriza
   }
 
   starting_values["sigma_e"] <- log(0.1 * sd(y_resp))
-  
+
   # Update starting values with model_options if provided
-  if (!is.null(model_options)) {        
-        
+  if (!is.null(model_options)) {
+
     # Update all parameters from model_options
     for (param_name in names(starting_values)) {
       fix_param <- paste0("fix_", param_name)
       start_param <- paste0("start_", param_name)
-      
+
       if (!is.null(model_options[[fix_param]])) {
         # Special handling for parameters with transformations
         if (param_name == "hxy") {
           starting_values[param_name] <- -log(2/(model_options[[fix_param]]+1) - 1)
-        } else if ((param_name == "rho" || param_name == "rho2") && 
+        } else if ((param_name == "rho" || param_name == "rho2") &&
                    inherits(model, "spacetimeobj") && model$is_bounded_rho) {
           # Apply logit transformation for bounded rho parameters
           bound <- model$bound_rho
@@ -3049,7 +3049,7 @@ get_model_starting_values <- function(model, model_options, y_resp, parameteriza
       } else if (!is.null(model_options[[start_param]])) {
         if (param_name == "hxy") {
           starting_values[param_name] <- -log(2/(model_options[[start_param]]+1) - 1)
-        } else if ((param_name == "rho" || param_name == "rho2") && 
+        } else if ((param_name == "rho" || param_name == "rho2") &&
                    inherits(model, "spacetimeobj") && model$is_bounded_rho) {
           # Apply logit transformation for bounded rho parameters
           bound <- model$bound_rho
@@ -3079,8 +3079,8 @@ get_model_starting_values <- function(model, model_options, y_resp, parameteriza
         model_options$fix_beta
       } else {
         model_options$start_beta
-      }      
-      
+      }
+
       if (is.null(start_alpha)) {
         if (is.null(model$alpha)) {
           start_alpha = 1
@@ -3098,7 +3098,7 @@ get_model_starting_values <- function(model, model_options, y_resp, parameteriza
 
       starting_values["alpha"] <- log(start_alpha)
       starting_values["beta"] <- log(start_beta - max(0, model$d/2 - start_alpha))
-    } 
+    }
 
     # Handle sigma_e separately
     start_sigma_e <- if (!is.null(model_options$fix_sigma_e)) {
@@ -3106,12 +3106,12 @@ get_model_starting_values <- function(model, model_options, y_resp, parameteriza
     } else {
       model_options$start_sigma_e
     }
-    
+
     if (!is.null(start_sigma_e)) {
       starting_values["sigma_e"] <- log(start_sigma_e)
     }
   }
-    
+
   if (is.null(starting_values) || length(starting_values) == 0) {
     stop("There was an error processing the starting values.")
   }
@@ -3154,23 +3154,23 @@ get_aux_likelihood_function <- function(model) {
 determine_estimate_params <- function(model, model_options, start_values) {
   # Initialize estimate_params with TRUE for all named parameters in start_values
   estimate_params <- setNames(
-    rep(TRUE, length(start_values)), 
+    rep(TRUE, length(start_values)),
     names(start_values)
   )
-  
+
   # For each parameter in start_values, check if it should be fixed
   for (param_name in names(start_values)) {
     if (param_name == "") {
       stop("Some parameters were not processed correctly when computing the starting values.")
     }
-    
+
     # Check if there's a corresponding fix_param in model_options
     fix_param_name <- paste0("fix_", param_name)
     if (!is.null(model_options[[fix_param_name]])) {
       estimate_params[param_name] <- FALSE
     }
   }
-  
+
   return(estimate_params)
 }
 
@@ -3189,12 +3189,12 @@ theta2alpha <- function(theta_alpha, d = NULL, model_options = NULL) {
     if (!is.null(model_options) && !is.null(model_options$fix_alpha)) {
         return(model_options$fix_alpha)
     }
-    
+
     # Check if fix_beta is provided in model_options
     if (!is.null(model_options) && !is.null(model_options$fix_beta) && !is.null(d)) {
         return(max(0, d/2 - model_options$fix_beta) + exp(theta_alpha))
     }
-    
+
     # Default case: simple exponential transformation
     return(exp(theta_alpha))
 }
@@ -3214,12 +3214,12 @@ alpha2theta <- function(alpha, d = NULL, model_options = NULL) {
     if (!is.null(model_options) && !is.null(model_options$fix_alpha)) {
         return(NULL)  # No theta_alpha needed if alpha is fixed
     }
-    
+
     # Check if fix_beta is provided in model_options
     if (!is.null(model_options) && !is.null(model_options$fix_beta) && !is.null(d)) {
         return(log(alpha - max(0, d/2 - model_options$fix_beta)))
     }
-    
+
     # Default case: simple log transformation
     return(log(alpha))
 }
@@ -3241,17 +3241,17 @@ theta2beta <- function(theta_beta, d, alpha = NULL, model_options = NULL) {
         alpha <- model_options$fix_alpha
         return(max(0, d/2 - alpha) + exp(theta_beta))
     }
-    
+
     # Check if fix_beta is provided in model_options
     if (!is.null(model_options) && !is.null(model_options$fix_beta)) {
         return(model_options$fix_beta)
     }
-    
+
     # Use alpha if provided
     if (!is.null(alpha)) {
         return(max(0, d/2 - alpha) + exp(theta_beta))
     }
-    
+
     # If we get here, alpha must be provided
     stop("Either alpha or model_options$fix_alpha must be provided")
 }
@@ -3272,18 +3272,18 @@ beta2theta <- function(beta, d, alpha = NULL, model_options = NULL) {
     if (!is.null(model_options) && !is.null(model_options$fix_beta)) {
         return(NULL)  # No theta_beta needed if beta is fixed
     }
-    
+
     # Check if fix_alpha is provided in model_options
     if (!is.null(model_options) && !is.null(model_options$fix_alpha)) {
         alpha <- model_options$fix_alpha
         return(log(beta - max(0, d/2 - alpha)))
     }
-    
+
     # Default case: use alpha if provided
     if (!is.null(alpha)) {
         return(log(beta - max(0, d/2 - alpha)))
     }
-    
+
     # Fallback to original implementation
     return(log(beta - d/2))
 }
@@ -3320,7 +3320,7 @@ dalphadtheta <- function(theta_alpha) {
 #' @param smoothness_upper_bound Upper bound for the smoothness parameter
 #' @return List containing update arguments and additional values
 #' @noRd
-extract_model_update_args <- function(model, theta, estimate_params, model_options, 
+extract_model_update_args <- function(model, theta, estimate_params, model_options,
                                       start_values, n_coeff_nonfixed, smoothness_upper_bound) {
   # Initialize results
   args_list <- list()
@@ -3330,7 +3330,7 @@ extract_model_update_args <- function(model, theta, estimate_params, model_optio
     beta_cov = NULL,
     early_return = NULL
   )
-  
+
   # Get parameter names from estimate_params
   param_names <- names(estimate_params)
 
@@ -3344,16 +3344,16 @@ extract_model_update_args <- function(model, theta, estimate_params, model_optio
   if (inherits(model, "spacetimeobj")) {
     args_list$rho <- numeric(model$d)
   }
-  
+
   # Initialize index tracker
   index <- 1
-  
+
   # Process parameters based on their names rather than model class
   for (param_name in param_names) {
     if (param_name == "") {
       stop("Some parameters were not processed correctly when determining the parameters to estimate.")
     }
-    
+
     # If parameter should be estimated, get from theta
     if (estimate_params[param_name]) {
       # Special handling for each parameter type
@@ -3365,12 +3365,12 @@ extract_model_update_args <- function(model, theta, estimate_params, model_optio
         nu <- exp(theta[index])
         if ((nu + model$d/2) %% 1 == 0) nu <- nu - 1e-5
         args_list$nu <- nu
-        
+
         if (nu >= smoothness_upper_bound) {
           result$early_return <- 10^100
           return(result)
         }
-        
+
         index <- index + 1
       }
       else if (param_name == "alpha" && !inherits(model, "intrinsicCBrSPDEobj")) {
@@ -3459,7 +3459,7 @@ extract_model_update_args <- function(model, theta, estimate_params, model_optio
     } else {
       # If parameter is fixed, get from model_options or model
       fix_param_name <- paste0("fix_", param_name)
-      
+
       if (param_name == "sigma_e") {
         result$sigma_e <- model_options[[fix_param_name]]
       }
@@ -3480,27 +3480,27 @@ extract_model_update_args <- function(model, theta, estimate_params, model_optio
       }
     }
   }
-  
+
   # Handle special case for intrinsicCBrSPDEobj with alpha=0
   if (inherits(model, "intrinsicCBrSPDEobj")) {
     if (!is.null(args_list$alpha) && args_list$alpha == 0) {
       args_list$kappa <- 0
     }
   }
-  
+
   # Special case for spacetime models with alpha=0
   if (inherits(model, "spacetimeobj")) {
     if (model$alpha == 0) {
       args_list$rho <- rep(0, model$d)
     }
   }
-  
+
   # Extract beta_cov if needed
   n_cov <- length(theta) - n_coeff_nonfixed
   if (n_cov > 0) {
     result$beta_cov <- theta[(n_coeff_nonfixed + 1):length(theta)]
   }
-  
+
   result$args_list <- args_list
   return(result)
 }
@@ -3514,12 +3514,12 @@ extract_model_update_args <- function(model, theta, estimate_params, model_optio
 #' @param A_list List of observation matrices
 #' @param sigma_e Sigma_e parameter
 #' @param beta_cov Beta coefficients for covariates
-#' @param mean_correction Apply mean correction 
+#' @param mean_correction Apply mean correction
 #' @param loc_df Location data frame
 #' @return List of arguments for auxiliary likelihood function
 #' @noRd
-get_aux_lik_fun_args <- function(model, y_resp, X_cov, repl, A_list, 
-                                sigma_e, beta_cov, mean_correction = FALSE, 
+get_aux_lik_fun_args <- function(model, y_resp, X_cov, repl, A_list,
+                                sigma_e, beta_cov, mean_correction = FALSE,
                                 loc_df = NULL) {
   # Common arguments for all auxiliary likelihood functions
   args <- list(
@@ -3530,19 +3530,19 @@ get_aux_lik_fun_args <- function(model, y_resp, X_cov, repl, A_list,
     sigma_e = sigma_e,
     beta_cov = beta_cov
   )
-  
+
   # Model-specific arguments
   if(inherits(model, "rSPDEobj1d")) {
     args$loc <- loc_df
   } else {
     args$A_list <- A_list
   }
-  
+
   # Only intrinsicCBrSPDEobj models use mean_correction
   if(inherits(model, "intrinsicCBrSPDEobj")) {
     args$mean_correction <- mean_correction
   }
-  
+
   return(args)
 }
 
@@ -3551,61 +3551,61 @@ get_aux_lik_fun_args <- function(model, y_resp, X_cov, repl, A_list,
 #' @param model Original model object
 #' @param model_options Model options including fixed/start parameters
 #' @param y_resp Response variable
-#' @param X_cov Covariate matrix 
-#' @param A_list List of observation matrices 
-#' @param repl Replication indicator 
+#' @param X_cov Covariate matrix
+#' @param A_list List of observation matrices
+#' @param repl Replication indicator
 #' @param start_values Named vector of starting values
-#' @param mean_correction Apply mean correction 
-#' @param smoothness_upper_bound Upper bound for smoothness parameter 
+#' @param mean_correction Apply mean correction
+#' @param smoothness_upper_bound Upper bound for smoothness parameter
 #' @param loc_df Location data frame
 #' @return List containing likelihood function and parameter estimation flags
 #' @noRd
-create_likelihood <- function(model, model_options, y_resp, 
+create_likelihood <- function(model, model_options, y_resp,
                              X_cov, A_list,
                              repl, start_values,
                              mean_correction, smoothness_upper_bound,
                              loc_df) {
-  
+
   # Initialize X_cov if NULL
   if(is.null(X_cov)) {
     X_cov <- matrix(0, nrow = length(y_resp), ncol = 0)
   }
-  
+
   # Get appropriate auxiliary likelihood function
-  aux_lik_fun <- get_aux_likelihood_function(model) 
+  aux_lik_fun <- get_aux_likelihood_function(model)
   # Determine which parameters to estimate
   estimate_params <- determine_estimate_params(model, model_options, start_values)
-  
+
   # Count number of non-fixed coefficients from model parameters
   n_coeff_nonfixed <- sum(estimate_params)
-  
+
   # Create the likelihood function
   likelihood <- function(theta) {
     # Create a working copy of the model
     model_tmp <- model
-    
+
     # Extract model update arguments
     result <- extract_model_update_args(
-      model = model_tmp, 
-      theta = theta, 
+      model = model_tmp,
+      theta = theta,
       estimate_params = estimate_params,
       model_options = model_options,
       start_values = start_values,
       n_coeff_nonfixed = n_coeff_nonfixed,
       smoothness_upper_bound = smoothness_upper_bound
     )
-    
+
     # Check for early return (e.g., nu at upper bound for rSPDEobj1d)
     if(!is.null(result$early_return)) {
       return(result$early_return)
     }
-    
+
     # Update the model with the extracted parameters
     model_tmp <- do.call(update, c(
       list(object = model_tmp, check_stationarity = FALSE),
       result$args_list
     ))
-    
+
     # Get arguments for auxiliary likelihood function
     aux_args <- get_aux_lik_fun_args(
       model = model_tmp,
@@ -3618,13 +3618,13 @@ create_likelihood <- function(model, model_options, y_resp,
       mean_correction = mean_correction,
       loc_df = loc_df
     )
-    
+
     # Call the auxiliary likelihood function with the appropriate arguments
     loglik <- do.call(aux_lik_fun, aux_args)
-    
+
     return(-loglik)
   }
-  
+
   # Return both the likelihood function and parameter estimation flags
   return(list(
     likelihood = likelihood,
@@ -3645,28 +3645,28 @@ create_likelihood <- function(model, model_options, y_resp,
 #' @param n_coeff_nonfixed Number of non-fixed coefficients
 #' @return List containing parameter values and additional information
 #' @noRd
-extract_parameters_from_optim <- function(res, start_values, estimate_params, model, 
+extract_parameters_from_optim <- function(res, start_values, estimate_params, model,
                                          model_options, X_cov, n_coeff_nonfixed) {
   # Initialize result list
   result <- list(
     coeff_random = NULL
   )
-  
+
   # Initialize tracking index for res$par
   index <- 1
-  
+
   # Create coefficient vector with same length as start_values
   param_names <- names(start_values)
   coeff <- numeric(length(start_values))
   names(coeff) <- param_names
-  
+
   # Process each parameter
   for (i in 1:length(start_values)) {
     param_name <- param_names[i]
-    
+
     # If parameter is estimated, get from res$par
     if (estimate_params[i]) {
-      if (param_name == "sigma_e" || param_name == "tau" || 
+      if (param_name == "sigma_e" || param_name == "tau" ||
           param_name == "kappa" || param_name == "sigma" || param_name == "range" ||
           param_name == "gamma" || param_name == "hx" || param_name == "hy" || param_name == "nu") {
         # Parameters with exponential transformation
@@ -3751,7 +3751,7 @@ extract_parameters_from_optim <- function(res, start_values, estimate_params, mo
     else {
       # Parameter is fixed - get from model_options or model
       fix_param_name <- paste0("fix_", param_name)
-      
+
       if (param_name == "sigma_e") {
         coeff[i] <- model_options[[fix_param_name]]
       }
@@ -3765,17 +3765,17 @@ extract_parameters_from_optim <- function(res, start_values, estimate_params, mo
       }
     }
   }
-  
+
   # Add coefficients for covariates if any
   n_fixed <- ncol(X_cov)
   if (n_fixed > 0) {
     coeff_fixed <- res$par[(n_coeff_nonfixed + 1):(n_coeff_nonfixed + n_fixed)]
     result$coeff_fixed <- coeff_fixed
   }
-  
+
   # Set result coefficient vector
   result$coeff_random <- coeff
-  
+
   return(result)
 }
 #' Organize extracted parameters into appropriate categories
@@ -3793,26 +3793,26 @@ organize_parameters <- function(coeff, model, estimate_params, X_cov) {
     coeff_fixed = NULL,
     par_names = NULL
   )
-  
+
   # Find the position of sigma_e in estimate_params
   sigma_e_pos <- which(names(estimate_params) == "sigma_e")
-  
+
   # Set measurement error coefficient (sigma_e)
   result$coeff_meas <- coeff[sigma_e_pos]
   names(result$coeff_meas) <- "std. dev"
-  
+
   # Get parameter names from estimate_params
   par_names <- names(estimate_params)
-  
+
   # Set parameter names in result
   result$par_names <- par_names
-  
+
   # Extract random effects coefficients (all parameters except sigma_e and fixed effects)
   # Create a logical vector to exclude sigma_e
   random_indices <- setdiff(1:length(estimate_params), sigma_e_pos)
   result$coeff_random <- coeff[random_indices]
   names(result$coeff_random) <- par_names[random_indices]
-  
+
   # Extract fixed effects coefficients if any
   n_fixed <- ncol(X_cov)
   if (n_fixed > 0) {
@@ -3821,7 +3821,7 @@ organize_parameters <- function(coeff, model, estimate_params, X_cov) {
       result$coeff_fixed <- coeff[(length(estimate_params) + 1):length(coeff)]
     }
   }
-  
+
   return(result)
 }
 
@@ -3839,18 +3839,18 @@ calculate_parameter_jacobian <- function(res, estimate_params, model, model_opti
   n_coeff_nonfixed <- sum(estimate_params)
   n_fixed <- ncol(X_cov)
   n_total <- n_coeff_nonfixed + n_fixed
-  
+
   # Create diagonal matrix for the Jacobian
   par_change <- diag(n_total)
-  
+
   # Track position in res$par
   index <- 1
-  
+
   # Process parameters in order of estimate_params
   param_names <- names(estimate_params)
   for (i in 1:length(estimate_params)) {
     param_name <- param_names[i]
-    
+
     if (estimate_params[i]) {
       # Parameter is estimated, get transformation from res$par
       if (param_name == "sigma_e" || param_name == "tau" || param_name == "nu" ||
@@ -3914,7 +3914,7 @@ calculate_parameter_jacobian <- function(res, estimate_params, model, model_opti
       }
     }
   }
-    
+
   return(par_change)
 }
 
@@ -3930,7 +3930,7 @@ calculate_parameter_jacobian <- function(res, estimate_params, model, model_opti
 #' @param param_results Results from parameter extraction
 #' @return List containing standard errors and other results
 #' @noRd
-calculate_standard_errors <- function(observed_fisher, res, estimate_params, model, 
+calculate_standard_errors <- function(observed_fisher, res, estimate_params, model,
                                      model_options, X_cov, n_coeff_nonfixed, param_results) {
   # Handle edge cases
   all_fixed = all(!estimate_params)
@@ -3939,17 +3939,17 @@ calculate_standard_errors <- function(observed_fisher, res, estimate_params, mod
   if (length(sigma_e_pos) == 0) {
     stop("Processing error. sigma_e parameter could not be found in estimate_params.")
   }
-  
+
   # Check if only sigma_e is estimated
   only_sigma_e = sum(estimate_params) == 1 && estimate_params[sigma_e_pos]
-  
+
   # Number of fixed effects
   n_fixed <- ncol(X_cov)
-  
+
   # Initialize standard error vectors
   std_random <- rep(NA, length(param_results$coeff_random))
   names(std_random) <- names(param_results$coeff_random)
-  
+
   std_fixed <- NULL
   if (n_fixed > 0) {
     std_fixed <- rep(NA, n_fixed)
@@ -3957,7 +3957,7 @@ calculate_standard_errors <- function(observed_fisher, res, estimate_params, mod
       names(std_fixed) <- names(param_results$coeff_fixed)
     }
   }
-  
+
   # If all parameters are fixed but we have fixed effects
   if (all_fixed && n_fixed > 0) {
     # We still need to calculate standard errors for fixed effects
@@ -3966,11 +3966,11 @@ calculate_standard_errors <- function(observed_fisher, res, estimate_params, mod
         solve(observed_fisher),
         error = function(e) matrix(NA, n_fixed, n_fixed)
       )
-      
+
       if (!all(is.na(inv_fisher))) {
         std_fixed <- sqrt(diag(inv_fisher))
       }
-      
+
       return(list(
         std_err = c(rep(NA, length(estimate_params)), std_fixed),
         std_meas = NA,
@@ -3990,7 +3990,7 @@ calculate_standard_errors <- function(observed_fisher, res, estimate_params, mod
       ))
     }
   }
-  
+
   # If all parameters are fixed and no fixed effects
   if (all_fixed && n_fixed == 0) {
     return(list(
@@ -4001,7 +4001,7 @@ calculate_standard_errors <- function(observed_fisher, res, estimate_params, mod
       inv_fisher = matrix(NA, length(estimate_params), length(estimate_params))
     ))
   }
-  
+
   # If only sigma_e is estimated (all other latent parameters fixed)
   if (only_sigma_e) {
     # Extract the part of observed_fisher for sigma_e
@@ -4013,13 +4013,13 @@ calculate_standard_errors <- function(observed_fisher, res, estimate_params, mod
         # Find position of sigma_e in the estimated parameters
         est_param_indices <- which(estimate_params)
         sigma_e_idx <- which(est_param_indices == sigma_e_pos)
-        
+
         if (length(sigma_e_idx) > 0 && sigma_e_idx <= nrow(observed_fisher)) {
           sigma_e_fisher <- observed_fisher[sigma_e_idx, sigma_e_idx, drop = FALSE]
         }
       }
     }
-    
+
     # Calculate standard error for sigma_e
     if (!is.null(sigma_e_fisher) && !is.na(sigma_e_fisher) && sigma_e_fisher != 0) {
       inv_fisher_sigma_e <- 1/sigma_e_fisher
@@ -4028,41 +4028,41 @@ calculate_standard_errors <- function(observed_fisher, res, estimate_params, mod
       inv_fisher_sigma_e <- NA
       std_meas <- NA
     }
-    
+
     # Handle fixed effects if present
     if (n_fixed > 0 && nrow(observed_fisher) > 1) {
       # Extract fixed effects part of the Fisher information
       fixed_effects_idx <- (sum(estimate_params) + 1):(sum(estimate_params) + n_fixed)
       if (max(fixed_effects_idx) <= nrow(observed_fisher)) {
         fixed_effects_fisher <- observed_fisher[fixed_effects_idx, fixed_effects_idx, drop = FALSE]
-        
+
         inv_fisher_fixed <- tryCatch(
           solve(fixed_effects_fisher),
           error = function(e) matrix(NA, n_fixed, n_fixed)
         )
-        
+
         if (!all(is.na(inv_fisher_fixed))) {
           std_fixed <- sqrt(diag(inv_fisher_fixed))
         }
       }
     }
-    
+
     # Construct full inverse Fisher matrix
     full_size <- sum(estimate_params) + n_fixed
     full_inv_fisher <- matrix(NA, full_size, full_size)
-    
+
     # Fill in sigma_e part
     if (!is.na(inv_fisher_sigma_e)) {
       full_inv_fisher[1, 1] <- inv_fisher_sigma_e
     }
-    
+
     # Fill in fixed effects part if available
     if (n_fixed > 0 && exists("inv_fisher_fixed") && !all(is.na(inv_fisher_fixed))) {
       start_idx <- sum(estimate_params) + 1
       end_idx <- sum(estimate_params) + n_fixed
       full_inv_fisher[start_idx:end_idx, start_idx:end_idx] <- inv_fisher_fixed
     }
-    
+
     return(list(
       std_err = c(std_meas, rep(NA, length(param_results$coeff_random) - 1), std_fixed),
       std_meas = std_meas,
@@ -4072,9 +4072,9 @@ calculate_standard_errors <- function(observed_fisher, res, estimate_params, mod
       observed_fisher = observed_fisher
     ))
   }
-  
+
   # Regular case - calculate parameter Jacobian and standard errors
-  
+
   # Calculate the parameter transformation Jacobian
   par_change <- calculate_parameter_jacobian(
     res = res,
@@ -4083,59 +4083,59 @@ calculate_standard_errors <- function(observed_fisher, res, estimate_params, mod
     model_options = model_options,
     X_cov = X_cov
   )
-  
+
   # Apply parameter transformation to observed Fisher information
   transformed_fisher <- par_change %*% observed_fisher %*% par_change
-  
+
   # Attempt to invert the Fisher information matrix
   inv_fisher <- tryCatch(
-    solve(transformed_fisher), 
+    solve(transformed_fisher),
     error = function(e) matrix(NA, nrow(transformed_fisher), ncol(transformed_fisher))
   )
-  
+
   # Calculate standard errors from inverse Fisher information
   std_err <- sqrt(diag(inv_fisher))
-  
+
   # Get standard error for measurement error (sigma_e)
   std_meas <- NA
   if (estimate_params[sigma_e_pos]) {
     # Find the position of sigma_e in the estimated parameters
     est_param_indices <- which(estimate_params)
     sigma_e_idx <- which(est_param_indices == sigma_e_pos)
-    
+
     if (length(sigma_e_idx) > 0 && sigma_e_idx <= length(std_err)) {
       std_meas <- std_err[sigma_e_idx]
     }
   }
-  
+
   # Process standard errors for random effect parameters
   if (sum(estimate_params) > 0) {
     # Get indices of estimated parameters
     est_param_indices <- which(estimate_params)
-    
+
     # Map estimated parameters to their positions in std_random
     for (i in 1:length(est_param_indices)) {
       param_idx <- est_param_indices[i]
       param_name <- names(estimate_params)[param_idx]
-      
+
       # Skip sigma_e as it's handled separately
       if (param_name == "sigma_e") {
         next
       }
-      
+
       # Find the position of this parameter in coeff_random
       pos <- which(param_name == names(std_random))
-      
+
       # For parameters with special naming (like "Theta 1" vs "theta")
       if (length(pos) == 0 && param_name == "theta") {
         # Find positions that start with "Theta"
         pos <- grep("^Theta", names(std_random))
       }
-      
+
       if (length(pos) > 0) {
         # Find position in std_err vector (position in estimated parameters)
         std_err_idx <- which(est_param_indices == param_idx)
-        
+
         if (length(pos) == 1 && length(std_err_idx) == 1 && std_err_idx <= length(std_err)) {
           # Regular parameter
           std_random[pos] <- std_err[std_err_idx]
@@ -4160,7 +4160,7 @@ calculate_standard_errors <- function(observed_fisher, res, estimate_params, mod
       }
     }
   }
-  
+
   # Fill in standard errors for fixed effect parameters (covariates)
   if (n_fixed > 0) {
     start_idx <- length(std_err) - n_fixed + 1
@@ -4171,7 +4171,7 @@ calculate_standard_errors <- function(observed_fisher, res, estimate_params, mod
       }
     }
   }
-  
+
   # Return all standard errors
   return(list(
     std_err = std_err,
@@ -4195,9 +4195,9 @@ calculate_standard_errors <- function(observed_fisher, res, estimate_params, mod
 #' @param n_coeff_nonfixed Number of non-fixed coefficients
 #' @return List containing extracted parameters and standard errors
 #' @noRd
-process_model_results <- function(res, observed_fisher, start_values, estimate_params, 
+process_model_results <- function(res, observed_fisher, start_values, estimate_params,
                                 model, model_options, X_cov, n_coeff_nonfixed) {
-  
+
   # Extract parameters from optimization results
   extracted_params <- extract_parameters_from_optim(
     res = res,
@@ -4208,7 +4208,7 @@ process_model_results <- function(res, observed_fisher, start_values, estimate_p
     X_cov = X_cov,
     n_coeff_nonfixed = n_coeff_nonfixed
   )
-  
+
   # Organize parameters into categories
   param_results <- organize_parameters(
     coeff = c(extracted_params$coeff_random, extracted_params$coeff_fixed),
@@ -4216,7 +4216,7 @@ process_model_results <- function(res, observed_fisher, start_values, estimate_p
     estimate_params = estimate_params,
     X_cov = X_cov
   )
-  
+
   # Calculate standard errors
   se_results <- calculate_standard_errors(
     observed_fisher = observed_fisher,
@@ -4228,7 +4228,7 @@ process_model_results <- function(res, observed_fisher, start_values, estimate_p
     n_coeff_nonfixed = n_coeff_nonfixed,
     param_results = param_results
   )
-  
+
   # Add "(fixed)" to parameter names for fixed parameters
   # For measurement error parameter (sigma_e)
   # Find the position of sigma_e in estimate_params
@@ -4236,23 +4236,23 @@ process_model_results <- function(res, observed_fisher, start_values, estimate_p
   if (length(sigma_e_pos) > 0 && !estimate_params[sigma_e_pos]) {
     names(param_results$coeff_meas) <- paste0(names(param_results$coeff_meas), " (fixed)")
   }
-  
+
   # For random effects parameters
   if (length(param_results$coeff_random) > 0) {
     # Get parameter names from the parameter results
     param_names <- names(param_results$coeff_random)
-    
+
     # For each parameter in coeff_random, check if it was estimated
     for (i in 1:length(param_names)) {
       param_name <- param_names[i]
-      
+
       # Find if this parameter was estimated
       was_estimated <- FALSE
-      
+
       # Check in standard param names
       if (param_name %in% names(estimate_params)) {
         was_estimated <- estimate_params[param_name]
-      } 
+      }
       # Check for "Theta N" parameters
       else if (startsWith(param_name, "Theta ")) {
         # If theta was estimated or this was a non-stationary model with unnamed params
@@ -4263,17 +4263,17 @@ process_model_results <- function(res, observed_fisher, start_values, estimate_p
           was_estimated <- any(names(estimate_params) == "" & estimate_params)
         }
       }
-      
+
       if (!was_estimated) {
         # Rename the parameter to include "(fixed)"
         names(param_results$coeff_random)[i] <- paste0(param_name, " (fixed)")
-        
+
         # Also rename in param_names for consistency
         param_results$par_names[i] <- paste0(param_name, " (fixed)")
       }
     }
   }
-  
+
   # Combine results
   result <- c(
     param_results,
@@ -4285,7 +4285,7 @@ process_model_results <- function(res, observed_fisher, start_values, estimate_p
       observed_fisher = se_results$observed_fisher
     )
   )
-  
+
   return(result)
 }
 
@@ -4293,7 +4293,7 @@ process_model_results <- function(res, observed_fisher, start_values, estimate_p
 
 #' Convert between SPDE and Matern parameterizations
 #'
-#' This function converts parameters between SPDE parameterization (tau, kappa, nu) 
+#' This function converts parameters between SPDE parameterization (tau, kappa, nu)
 #' and Matern parameterization (sigma, range, nu). It handles both directions of conversion
 #' and properly accounts for fixed parameters.
 #'
@@ -4306,15 +4306,15 @@ process_model_results <- function(res, observed_fisher, start_values, estimate_p
 #' @param std_random Named vector of standard errors for random effects
 #' @return A list containing converted parameters and their standard errors
 #' @noRd
-convert_parameterization_matern_spde <- function(model, parameterization, params, model_options = NULL, 
+convert_parameterization_matern_spde <- function(model, parameterization, params, model_options = NULL,
                                      observed_fisher = NULL, estimate_pars = NULL,
                                      std_random = NULL) {
   # Only proceed for stationary models that support Matern parameterization
-  if (!model$stationary || 
+  if (!model$stationary ||
       !(inherits(model, "CBrSPDEobj") || inherits(model, "rSPDEobj") || inherits(model, "rSPDEobj1d"))) {
     return(NULL)
   }
-  
+
   time_start <- Sys.time()
   result <- list()
   # Clean parameter names to remove "(fixed)" suffix
@@ -4337,11 +4337,11 @@ convert_parameterization_matern_spde <- function(model, parameterization, params
         stop("Processing error. Could not determine nu value.")
       }
     }
-    
+
     # Determine which parameters are fixed and get their values
     fixed_tau <- FALSE
     fixed_kappa <- FALSE
-    
+
     # Get tau value (either from params or from fixed value)
     if ("tau" %in% names(params)) {
       tau <- params["tau"]
@@ -4351,7 +4351,7 @@ convert_parameterization_matern_spde <- function(model, parameterization, params
     } else {
       stop("Could not determine tau value. It should be in params or specified as fix_tau in model_options.")
     }
-    
+
     # Get kappa value (either from params or from fixed value)
     if ("kappa" %in% names(params)) {
       kappa <- params["kappa"]
@@ -4361,21 +4361,21 @@ convert_parameterization_matern_spde <- function(model, parameterization, params
     } else {
       stop("Could not determine kappa value. It should be in params or specified as fix_kappa in model_options.")
     }
-            
+
     # Extract the appropriate submatrix of the Fisher information
     new_observed_fisher <- NULL
     if (!is.null(estimate_pars) && !is.null(observed_fisher) && nrow(observed_fisher) > 0) {
       # Get indices of parameters that are being estimated
       est_params_indices <- which(estimate_pars)
-      
+
       # Find positions of tau and kappa in the names vector
       tau_pos <- which(grepl("^tau", names(estimate_pars)))
       kappa_pos <- which(grepl("^kappa", names(estimate_pars)))
-      
+
       # Check if both parameters are being estimated
       tau_estimated <- length(tau_pos) > 0 && any(est_params_indices == tau_pos)
       kappa_estimated <- length(kappa_pos) > 0 && any(est_params_indices == kappa_pos)
-      
+
       # Find the positions of tau and kappa in the Fisher information matrix
       if (tau_estimated) {
         # Find the position in est_params_indices (and thus in the Fisher matrix)
@@ -4386,7 +4386,7 @@ convert_parameterization_matern_spde <- function(model, parameterization, params
           }
         }
       }
-      
+
       if (kappa_estimated) {
         # Find the position in est_params_indices (and thus in the Fisher matrix)
         for (i in 1:length(est_params_indices)) {
@@ -4396,7 +4396,7 @@ convert_parameterization_matern_spde <- function(model, parameterization, params
           }
         }
       }
-      
+
       # Create a submatrix of the Fisher information based on which parameters are estimated
       if (tau_estimated && kappa_estimated) {
         # Both parameters estimated - use the 2x2 submatrix
@@ -4409,10 +4409,10 @@ convert_parameterization_matern_spde <- function(model, parameterization, params
         new_observed_fisher <- matrix(observed_fisher[kappa_idx, kappa_idx], 1, 1)
       }
     }
-    
+
     # Create the fixed_params vector for change_parameterization_lme
     fixed_params <- c(tau = fixed_tau, kappa = fixed_kappa)
-    
+
     # Get Matern parameterization
     change_par <- change_parameterization_lme(
       d = model$d,
@@ -4421,24 +4421,24 @@ convert_parameterization_matern_spde <- function(model, parameterization, params
       hessian = new_observed_fisher,
       fixed_params = fixed_params
     )
-    
+
     result$coeff <- c(nu, change_par$coeff)
     names(result$coeff) <- c("nu", "sigma", "range")
-    
+
     # Handle standard errors correctly
     result$std_random <- rep(NA, 3)
     names(result$std_random) <- c("nu", "sigma", "range")
-    
+
     # Copy nu standard error if it exists in std_random
     if (!is.null(std_random) && "alpha" %in% names(std_random) && !is.na(std_random["alpha"])) {
       result$std_random["nu"] <- std_random["alpha"]
     }
-    
+
     # Copy sigma and range standard errors from change_par
     if (!is.null(change_par$std_random)) {
       result$std_random[c("sigma", "range")] <- change_par$std_random
     }
-    
+
   } else if (parameterization == "matern") {
     # Converting from Matern to SPDE
     # Extract parameters from the Matern parameterization
@@ -4455,11 +4455,11 @@ convert_parameterization_matern_spde <- function(model, parameterization, params
       }
       alpha <- nu + model$d / 2
     }
-    
+
     # Determine which parameters are fixed
     fixed_sigma <- FALSE
     fixed_range <- FALSE
-    
+
     # Get sigma value
     if ("sigma" %in% names(params)) {
       sigma <- params["sigma"]
@@ -4469,7 +4469,7 @@ convert_parameterization_matern_spde <- function(model, parameterization, params
     } else {
       stop("Could not determine sigma value. It should be in params or specified as fix_sigma in model_options.")
     }
-    
+
     # Get range value
     if ("range" %in% names(params)) {
       range <- params["range"]
@@ -4479,30 +4479,30 @@ convert_parameterization_matern_spde <- function(model, parameterization, params
     } else {
       stop("Could not determine range value. It should be in params or specified as fix_range in model_options.")
     }
-    
+
     # Extract the appropriate submatrix of the Fisher information
     new_observed_fisher <- NULL
     if (!is.null(estimate_pars) && !is.null(observed_fisher) && nrow(observed_fisher) > 0) {
       # Get indices of parameters that are being estimated
       est_params_indices <- which(estimate_pars)
-      
+
       # Find positions of sigma and range in the names vector
       # pattern to match "sigma" or "sigma (fixed)" but not "sigma_e"
       sigma_pos <- which(grepl("^sigma($| \\(fixed\\))", names(estimate_pars)))
       range_pos <- which(grepl("^range($| \\(fixed\\))", names(estimate_pars)))
-      
+
       # Check if both parameters are being estimated - using strict equality to enforce single match
       sigma_estimated <- FALSE
       range_estimated <- FALSE
-      
+
       if (length(sigma_pos) == 1) {
         sigma_estimated <- any(est_params_indices == sigma_pos)
       }
-      
+
       if (length(range_pos) == 1) {
         range_estimated <- any(est_params_indices == range_pos)
       }
-      
+
       # Find the positions of sigma and range in the Fisher information matrix
       if (sigma_estimated) {
         # Find the position in est_params_indices (and thus in the Fisher matrix)
@@ -4513,7 +4513,7 @@ convert_parameterization_matern_spde <- function(model, parameterization, params
           }
         }
       }
-      
+
       if (range_estimated) {
         # Find the position in est_params_indices (and thus in the Fisher matrix)
         for (i in 1:length(est_params_indices)) {
@@ -4523,7 +4523,7 @@ convert_parameterization_matern_spde <- function(model, parameterization, params
           }
         }
       }
-      
+
       # Create a submatrix of the Fisher information for estimated parameters
       if (sigma_estimated && range_estimated) {
         # Both parameters estimated - use the 2x2 submatrix
@@ -4536,10 +4536,10 @@ convert_parameterization_matern_spde <- function(model, parameterization, params
         new_observed_fisher <- matrix(observed_fisher[range_idx, range_idx], 1, 1)
       }
     }
-    
+
     # Create the fixed_params vector for change_parameterization_lme
     fixed_params <- c(sigma = fixed_sigma, range = fixed_range)
-    
+
     # Get SPDE parameterization
     change_par <- change_parameterization_lme(
       d = model$d,
@@ -4549,26 +4549,26 @@ convert_parameterization_matern_spde <- function(model, parameterization, params
       fixed_params = fixed_params,
       to_spde = TRUE  # Indicate we're converting to SPDE parameterization
     )
-    
+
     # Create result structure
     result$coeff <- c(alpha, change_par$coeff)
     names(result$coeff) <- c("alpha", "tau", "kappa")
-    
+
     # Handle standard errors correctly
     result$std_random <- rep(NA, 3)
     names(result$std_random) <- c("alpha", "tau", "kappa")
-    
+
     # Copy nu standard error if it exists in std_random
     if (!is.null(std_random) && "nu" %in% names(std_random) && !is.na(std_random["nu"])) {
       result$std_random["alpha"] <- std_random["nu"]
     }
-    
+
     # Copy tau and kappa standard errors from change_par
     if (!is.null(change_par$std_random)) {
       result$std_random[c("tau", "kappa")] <- change_par$std_random
     }
   }
-  
+
   result$time <- Sys.time() - time_start
   return(result)
 }

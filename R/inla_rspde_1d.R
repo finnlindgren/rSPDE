@@ -56,7 +56,7 @@
 #' @return An INLA model.
 #' @export
 rspde.matern1d <- function(loc,
-                         nu.upper.bound = NULL, 
+                         nu.upper.bound = NULL,
                          rspde.order = 1,
                          nu = NULL,
                          parameterization = c("spde", "matern", "matern2"),
@@ -85,37 +85,37 @@ rspde.matern1d <- function(loc,
                          shared_lib = "detect",
                          ...) {
     type.rational.approx <- type.rational.approx[[1]]
-    
+
     prior.theta.param <- prior.theta.param[[1]]
-    
+
     if (!(prior.theta.param %in% c("theta", "spde"))) {
         stop("theta.theta.param should be either 'theta' or 'spde'!")
     }
-    
+
     parameterization <- parameterization[[1]]
-    
+
     prior.nu.dist <- prior.nu.dist[[1]]
     if (!prior.nu.dist %in% c("beta", "lognormal")) {
         stop("prior.nu.dist should be either 'beta' or 'lognormal'!")
     }
-    
+
     if (!parameterization %in% c("matern", "spde", "matern2")) {
         stop("parameterization should be either 'matern', 'spde' or 'matern2'!")
     }
-    
+
     if (!type.rational.approx %in% c("brasil", "chebfun", "chebfunLB")) {
         stop("type.rational.approx should be either 'chebfun', 'brasil' or 'chebfunLB'!")
     }
-    
+
     if(length(unique(diff(loc))) == 1) {
         equally_spaced <- TRUE
     } else {
         equally_spaced <- FALSE
     }
     integer.nu <- FALSE
-    
+
     stationary <- FALSE
-    
+
     if(is.null(nu.upper.bound)){
         nu.upper.bound <- 2
     }
@@ -123,7 +123,7 @@ rspde.matern1d <- function(loc,
     if(nu.upper.bound + 0.5 - floor(nu.upper.bound + 0.5) == 0){
         nu.upper.bound <- nu.upper.bound - 1e-5
     }
-    
+
     fixed_nu <- !is.null(nu)
     if (fixed_nu) {
         nu_order <- nu
@@ -133,22 +133,22 @@ rspde.matern1d <- function(loc,
     }
     d = 1
     beta <- nu_order / 2 + d / 4
-    
+
     m_alpha <- floor(2 * beta)
-    
+
     if (!is.null(nu)) {
         if (!is.numeric(nu)) {
             stop("nu must be numeric!")
         }
     }
-    
+
     if (fixed_nu) {
         alpha <- nu + d / 2
         integer_alpha <- (alpha %% 1 == 0)
         if (!integer_alpha) {
             if (rspde.order > 0) {
                 rational_table <- get_rational_coefficients(rspde.order, type.rational.approx)
-            } 
+            }
         } else {
             rational_table <- get_rational_coefficients(1, type.rational.approx)
         }
@@ -158,34 +158,34 @@ rspde.matern1d <- function(loc,
             rational_table <- get_rational_coefficients(rspde.order, type.rational.approx)
         }
     }
-    
+
     ### Location of object files
-    
+
     rspde_lib <- get_shared_library(shared_lib)
-    
+
     ### PRIORS AND STARTING VALUES
-    
+
     # Prior nu
-    
+
     if (is.null(prior.nu$loglocation)) {
         prior.nu$loglocation <- log(min(1, nu.upper.bound / 2))
     }
-    
+
     if (is.null(prior.nu[["mean"]])) {
         prior.nu[["mean"]] <- min(1, nu.upper.bound / 2)
     }
-    
+
     if (is.null(prior.nu$prec)) {
         mu_temp <- prior.nu[["mean"]] / nu.upper.bound
         prior.nu$prec <- max(1 / mu_temp, 1 / (1 - mu_temp)) + nu.prec.inc
     }
-    
+
     if (is.null(prior.nu[["logscale"]])) {
         prior.nu[["logscale"]] <- 1
     }
-    
+
     # Start nu
-    
+
     if (is.null(start.nu)) {
         if (prior.nu.dist == "beta") {
             start.nu <- prior.nu[["mean"]]
@@ -197,8 +197,8 @@ rspde.matern1d <- function(loc,
     } else if (start.nu > nu.upper.bound || start.nu < 0) {
         stop("start.nu should be a number between 0 and nu.upper.bound!")
     }
-    
-    
+
+
     # Prior kappa and prior range
     param <- get_parameters_rSPDE(
         NULL, alpha,
@@ -219,14 +219,14 @@ rspde.matern1d <- function(loc,
         d = 1,
         n.spde = length(loc)
     )
-    
+
     if (is.null(start.theta)) {
         start.theta <- param$theta.prior.mean
     }
-    
+
     theta.prior.mean <- param$theta.prior.mean
     theta.prior.prec <- param$theta.prior.prec
-    
+
 
     # Starting values
     if (parameterization == "spde") {
@@ -252,7 +252,7 @@ rspde.matern1d <- function(loc,
         }
     }
 
-    
+
     if (!fixed_nu) {
         tmp <- matern.rational.precision(loc = loc,
                                          order = rspde.order,
@@ -261,16 +261,16 @@ rspde.matern1d <- function(loc,
                                          sigma = 1)
         graph_opt <- tmp$Q
         A <- tmp$A
-        n_cgeneric <- dim(graph_opt)[1]        
-                
+        n_cgeneric <- dim(graph_opt)[1]
+
         graph_opt <- transpose_cgeneric(graph_opt)
-                
+
         model <- do.call(
                     eval(parse(text = "INLA::inla.cgeneric.define")),
                     list(
                         model = "inla_cgeneric_rspde_1d_general_model",
                         shlib = rspde_lib,
-                        n = as.integer(n_cgeneric), 
+                        n = as.integer(n_cgeneric),
                         debug = debug,
                         nu_upper_bound = nu.upper.bound,
                         rational_table = as.matrix(rational_table),
@@ -293,8 +293,8 @@ rspde.matern1d <- function(loc,
                         nu_fixed = as.integer(0)
                     )
                 )
-        
-            
+
+
     model$cgeneric_type <- "general"
     } else if (!integer_alpha) {
         tmp <- matern.rational.precision(loc = loc,
@@ -305,15 +305,15 @@ rspde.matern1d <- function(loc,
         graph_opt <- tmp$Q
         A <- tmp$A
         n_cgeneric <- dim(graph_opt)[1]
-        
+
         graph_opt <- transpose_cgeneric(graph_opt)
-        
+
         model <- do.call(
             eval(parse(text = "INLA::inla.cgeneric.define")),
             list(
                 model = "inla_cgeneric_rspde_1d_general_model",
                 shlib = rspde_lib,
-                n = as.integer(n_cgeneric), 
+                n = as.integer(n_cgeneric),
                 debug = debug,
                 nu_upper_bound = nu,
                 rational_table = as.matrix(rational_table),
@@ -336,13 +336,13 @@ rspde.matern1d <- function(loc,
                 nu_fixed = as.integer(1)
             )
         )
-        
-            
-    
-            
+
+
+
+
         model$cgeneric_type <- "frac_alpha"
     } else {
-       
+
         tmp <- matern.rational.precision(loc = loc,
                                          order = rspde.order,
                                          nu = nu,
@@ -351,15 +351,15 @@ rspde.matern1d <- function(loc,
         graph_opt <- tmp$Q
         A <- tmp$A
         n_cgeneric <- dim(graph_opt)[1]
-        
+
         graph_opt <- transpose_cgeneric(graph_opt)
-        
+
         model <- do.call(
             eval(parse(text = "INLA::inla.cgeneric.define")),
             list(
                 model = "inla_cgeneric_rspde_1d_general_model",
                 shlib = rspde_lib,
-                n = as.integer(n_cgeneric), 
+                n = as.integer(n_cgeneric),
                 debug = debug,
                 nu_upper_bound = nu,
                 rational_table = as.matrix(rational_table),
@@ -384,7 +384,7 @@ rspde.matern1d <- function(loc,
         )
         model$cgeneric_type <- "int_alpha"
     }
-        
+
     model$nu <- nu
     model$theta.prior.mean <- theta.prior.mean
     model$prior.nu <- prior.nu
@@ -398,7 +398,7 @@ rspde.matern1d <- function(loc,
     model$rspde.order <- rspde.order
 
     rspde_check_cgeneric_symbol(model)
-    
+
     class(model) <- c("inla_rspde_matern1d", class(model))
     model$dim <- d
     model$est_nu <- !fixed_nu
@@ -462,9 +462,10 @@ ibm_jacobian.bru_mapper_inla_rspde_matern1d <- function(mapper, input, ...) {
 #' using 'inlabru'.
 #' @param object An `inla_rspde_matern1d` object built with the `rspde.matern1d()`
 #' function.
-#' @param cmp The 'inlabru' component used to fit the model.
+#' @param cmp The 'inlabru' component used to fit the model. Only the `formula`
+#'   input syntax is supported.
 #' @param bru_fit A fitted model using 'inlabru' or 'INLA'.
-#' @param newdata A data.frame of covariates needed for the prediction. 
+#' @param newdata A data.frame of covariates needed for the prediction.
 #' @param formula A formula where the right hand side defines an R expression to
 #' evaluate for each generated sample. If NULL, the latent and hyperparameter
 #' states are returned as named list elements. See Details for more information.
@@ -478,13 +479,10 @@ ibm_jacobian.bru_mapper_inla_rspde_matern1d <- function(mapper, input, ...) {
 #' original order?
 #' @param num.threads	Specification of desired number of threads for parallel
 #' computations. Default NULL, leaves it up to 'INLA'. When seed != 0, overridden to "1:1"
-#' @param include	Character vector of component labels that are needed by the
-#' predictor expression; Default: NULL (include all components that are not
-#' explicitly excluded)
-#' @param exclude	Character vector of component labels that are not used by the
-#' predictor expression. The exclusion list is applied to the list as determined
-#' by the include parameter; Default: NULL (do not remove any components from
-#' the inclusion list)
+#' @param used Optional [inlabru::bru_used()] specification for what components
+#' are needed by the predictor expression. Normally, autodetection works, and
+#' `used` can be left as `NULL` (the default).
+#' @param include,exclude Deprecated unused alternatives to `used`.
 #' @param drop logical; If keep=FALSE, data is a SpatialDataFrame, and the
 #' prediciton summary has the same number of rows as data, then the output is a
 #' SpatialDataFrame object. Default FALSE.
@@ -492,6 +490,7 @@ ibm_jacobian.bru_mapper_inla_rspde_matern1d <- function(mapper, input, ...) {
 #' @param... Additional arguments passed on to `inla.posterior.sample()`.
 #' @return A list with predictions.
 #' @export
+#' @importFrom lifecycle deprecated
 
 predict.inla_rspde_matern1d <- function(object,
                                            cmp,
@@ -503,25 +502,23 @@ predict.inla_rspde_matern1d <- function(object,
                                            probs = c(0.025, 0.5, 0.975),
                                            return_original_order = TRUE,
                                            num.threads = NULL,
-                                           include = NULL,
-                                           exclude = NULL,
+                                           used = NULL,
+                                           include = deprecated(),
+                                           exclude = deprecated(),
                                            drop = FALSE,
                                            tolerance = 1e-4,
                                            ...){
-  if(length(bru_fit$bru_info$lhoods) > 1){
+  if (length(inlabru::as_bru_obs_list(bru_fit)) > 1){
     stop("Only models with one likelihood implemented.")
   }
 
-  name_locations <- bru_fit$bru_info$model$effects$field$main$input$input
-  if (!is.character(name_locations) || length(name_locations) != 1) {
-    # Handle symbols/calls from different inlabru versions
-    name_locations <- all.vars(name_locations)
-  }
+  name_locations <-
+    inlabru::bru_input_text(inlabru::as_bru_comp_list(bru_fit)$field)$core$main
   if (length(name_locations) != 1) {
     stop("Could not determine location column name from fitted model.")
   }
-  
-  original_data <- bru_fit$bru_info$lhoods[[1]]$data
+
+  original_data <- inlabru::as_bru_obs_list(bru_fit)[[1]]$data
 
   new_data <- newdata
   new_data[["__new"]] <- TRUE
@@ -530,7 +527,7 @@ predict.inla_rspde_matern1d <- function(object,
 
   new_data <- merge_with_tolerance(original_data, new_data, by = as.character(name_locations), tolerance = tolerance)
 
-  spde____model <- rspde.matern1d(loc = new_data[[name_locations]], 
+  spde____model <- rspde.matern1d(loc = new_data[[name_locations]],
                                     rspde.order = object[["rspde.order"]],
                                     nu.upper.bound = object[["nu.upper.bound"]],
                                     nu = object[["nu"]],
@@ -548,12 +545,11 @@ predict.inla_rspde_matern1d <- function(object,
   cmp_c[3] <- sub(name_model, "spde____model", cmp_c[3])
   cmp_new <- as.formula(paste(cmp_c[2], cmp_c[1], cmp_c[3]))
 
-  info <- bru_fit[["bru_info"]]
-  info[["options"]] <- inlabru::bru_call_options(inlabru::bru_options(info[["options"]]))
+  info <- inlabru::as_bru_info(bru_fit)
 
   bru_fit_new <- inlabru::bru(cmp_new,
           data = new_data, options = info[["options"]])
-  
+
   pred <- predict(object = bru_fit_new,
                     newdata = newdata,
                     formula = formula,
@@ -561,8 +557,7 @@ predict.inla_rspde_matern1d <- function(object,
                     seed = seed,
                     probs = probs,
                     num.threads = num.threads,
-                    include = include,
-                    exclude = exclude,
+                    used = used,
                     drop = drop,
                     ...)
 
